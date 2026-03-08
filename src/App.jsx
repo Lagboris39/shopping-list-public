@@ -203,6 +203,7 @@ function App() {
   const [newItemName, setNewItemName] = useState('');
   const [historyInput, setHistoryInput] = useState('');
   const [historyInputDate, setHistoryInputDate] = useState(new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }));
+  const [showDirectAdd, setShowDirectAdd] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isApiConnected, setIsApiConnected] = useState(false);
@@ -693,74 +694,84 @@ function App() {
                 <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={28} /></button>
               </div>
 
-              <div className="search-container" style={{ marginBottom: '16px', flexShrink: 0, display: 'flex', gap: '0', flexWrap: 'nowrap', alignItems: 'center' }}>
-                {/* 検索エリア */}
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="履歴から検索..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ flex: 1.2, minWidth: '100px' }}
-                />
-                {/* 区切り線 */}
-                <div style={{ width: '1px', alignSelf: 'stretch', background: 'var(--border)', margin: '0 10px', flexShrink: 0 }} />
-                {/* 直接追加エリア */}
-                <div style={{ display: 'flex', gap: '6px', flex: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ marginBottom: '16px', flexShrink: 0 }}>
+                {/* 検索 + 履歴に追加ボタン 横並び */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
                     type="text"
                     className="search-input"
-                    placeholder="直接追加..."
-                    aria-label="品名"
-                    value={historyInput}
-                    onChange={(e) => setHistoryInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (historyInput.trim()) {
-                          addDirectlyToHistory(historyInput, historyInputDate);
-                          setHistoryInput('');
-                          document.activeElement?.blur();
-                        }
-                      }
-                    }}
-                    style={{ flex: 1, minWidth: '90px', borderStyle: 'dashed' }}
-                  />
-                  <input
-                    type="date"
-                    className="search-input"
-                    aria-label="日付"
-                    value={historyInputDate}
-                    max={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" })}
-                    onChange={(e) => setHistoryInputDate(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (historyInput.trim()) {
-                          addDirectlyToHistory(historyInput, historyInputDate);
-                          setHistoryInput('');
-                          document.activeElement?.blur();
-                        }
-                      }
-                    }}
-                    style={{ width: '120px', fontSize: '13px', padding: '6px 8px' }}
+                    placeholder="履歴から検索..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ flex: 1 }}
                   />
                   <button
-                    onClick={() => {
-                      if (historyInput.trim()) {
-                        addDirectlyToHistory(historyInput, historyInputDate);
-                        setHistoryInput('');
-                        document.activeElement?.blur();
-                      }
-                    }}
+                    onClick={() => setShowDirectAdd(v => !v)}
                     style={{
-                      padding: '8px 12px', borderRadius: '8px', background: 'var(--primary)', color: 'white',
-                      border: 'none', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0
+                      padding: '8px 12px', borderRadius: '8px',
+                      background: showDirectAdd ? 'var(--primary)' : 'var(--card-bg)',
+                      color: showDirectAdd ? 'white' : 'var(--text-main)',
+                      border: '1px solid var(--border)', fontSize: '13px', fontWeight: 'bold',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                      whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.15s, color 0.15s'
                     }}
                   >
-                    <Plus size={14} /> 追加
+                    <Plus size={14} /> 履歴に追加
                   </button>
                 </div>
+
+                {/* 折りたたみ入力エリア */}
+                {showDirectAdd && (
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="品名"
+                      aria-label="品名"
+                      value={historyInput}
+                      onChange={(e) => setHistoryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (historyInput.trim()) {
+                            addDirectlyToHistory(historyInput, historyInputDate);
+                            setHistoryInput('');
+                            setShowDirectAdd(false);
+                            document.activeElement?.blur();
+                          }
+                        }
+                      }}
+                      style={{ flex: 1, minWidth: '100px' }}
+                      autoFocus
+                    />
+                    <input
+                      type="date"
+                      className="search-input"
+                      aria-label="日付"
+                      value={historyInputDate}
+                      max={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" })}
+                      onChange={(e) => setHistoryInputDate(e.target.value)}
+                      style={{ width: '130px', fontSize: '13px', padding: '6px 8px', flexShrink: 0 }}
+                    />
+                    <button
+                      onClick={() => {
+                        if (historyInput.trim()) {
+                          addDirectlyToHistory(historyInput, historyInputDate);
+                          setHistoryInput('');
+                          setShowDirectAdd(false);
+                          document.activeElement?.blur();
+                        }
+                      }}
+                      style={{
+                        padding: '8px 14px', borderRadius: '8px', background: 'var(--primary)', color: 'white',
+                        border: 'none', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0
+                      }}
+                    >
+                      <Plus size={14} /> 追加する
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto' }}>
