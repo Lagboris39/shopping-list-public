@@ -242,29 +242,22 @@ input[type="text"]:focus {
     transform: scale(0.98);
 }
 
-/* 2行レイアウト: 左エリア */
+/* 1行レイアウト: 左エリア */
 .item-main-area {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     min-width: 0;
 }
 
-/* 1行目: drag + category + name */
-.item-row-top {
+/* 1行: drag + category + name */
+.item-row-single {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 6px 0 2px;
-}
-
-/* 2行目: 数量ステッパー */
-.item-row-bottom {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 0 6px;
-    padding-left: 44px; /* drag-handle 幅に揃える */
+    padding: 8px 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .item-text {
@@ -276,34 +269,44 @@ input[type="text"]:focus {
     min-width: 0;
 }
 
-/* 数量ステッパー */
-.qty-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+/* 縦ステッパー */
+.qty-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 4px 2px;
+    flex-shrink: 0;
+}
+
+.qty-v-btn {
+    width: 28px;
+    height: 20px;
+    font-size: 9px;
     border: 1px solid var(--border);
+    border-radius: 4px;
     background: var(--bg);
     color: var(--text-main);
-    font-size: 16px;
-    font-weight: bold;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
     touch-action: manipulation;
+    flex-shrink: 0;
 }
 
-.qty-btn:active {
+.qty-v-btn:active {
     background: var(--border);
 }
 
-.qty-count {
-    font-size: 15px;
+.qty-v-count {
+    font-size: 13px;
     font-weight: 700;
-    min-width: 22px;
+    min-width: 20px;
     text-align: center;
     color: var(--text-main);
+    padding: 1px 0;
 }
 
 .category-arrow {
@@ -388,7 +391,7 @@ input[type="text"]:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 8px;
+    padding: 4px 4px;
     cursor: grab;
     color: var(--text-secondary);
     opacity: 0.6;
@@ -405,7 +408,7 @@ input[type="text"]:focus {
     background-color: var(--success);
     color: white;
     border: none;
-    width: 60px;
+    width: 56px;
     height: auto;
     align-self: stretch;
     display: flex;
@@ -415,7 +418,7 @@ input[type="text"]:focus {
     transition: all 0.2s ease;
     flex-shrink: 0;
     border-radius: 10px;
-    margin: 4px 8px 4px 8px;
+    margin: 4px 6px 4px 4px;
     touch-action: manipulation;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
@@ -71,10 +71,9 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         className="item-card"
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
       >
-        {/* 左: 2行コンテンツ */}
+        {/* 左: 1行コンテンツ */}
         <div className="item-main-area">
-          {/* 1行目: drag + category + name */}
-          <div className="item-row-top">
+          <div className="item-row-single">
             <div
               className="drag-handle"
               onPointerDown={(e) => {
@@ -85,7 +84,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
                 window.addEventListener('pointercancel', cancel, { once: true });
               }}
             >
-              <GripVertical size={20} />
+              <GripVertical size={18} />
             </div>
             <button
               onClick={(e) => {
@@ -101,29 +100,30 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
             </button>
             <span className="item-text">{item.name}</span>
           </div>
-          {/* 2行目: 数量ステッパー */}
-          <div className="item-row-bottom">
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, -1); }}
-              className="qty-btn"
-            >－</button>
-            <span className="qty-count">{item.quantity || 1}</span>
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, 1); }}
-              className="qty-btn"
-            >＋</button>
-          </div>
         </div>
 
-        {/* 右: 購入ボタン（両行にまたがる） */}
+        {/* 縦ステッパー */}
+        <div className="qty-vertical">
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, 1); }}
+            className="qty-v-btn"
+          >▲</button>
+          <span className="qty-v-count">{item.quantity || 1}</span>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, -1); }}
+            className="qty-v-btn"
+          >▼</button>
+        </div>
+
+        {/* 右: 購入ボタン */}
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => { setIsRevealed(false); onPurchase(item.id); }}
           className="buy-button"
         >
-          <Check size={28} strokeWidth={3} />
+          <Check size={26} strokeWidth={3} />
         </button>
       </motion.div>
     </Reorder.Item>
@@ -529,13 +529,18 @@ function App() {
     return acc;
   }, {});
 
-  const uniqueHistoryNames = Array.from(new Set(history.map(h => h.name))).filter(
-    name => !items.some(i => i.name === name)
-  );
+  const historySuggestions = useMemo(() => {
+    const freq = {};
+    history.forEach(h => { freq[h.name] = (freq[h.name] || 0) + 1; });
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name)
+      .filter(name => !items.some(i => i.name === name));
+  }, [history, items]);
 
   const suggestions = newItemName.trim()
-    ? uniqueHistoryNames.filter(n => n.toLowerCase().includes(newItemName.toLowerCase())).slice(0, 5)
-    : uniqueHistoryNames.slice(0, 5);
+    ? historySuggestions.filter(n => n.toLowerCase().includes(newItemName.toLowerCase())).slice(0, 5)
+    : historySuggestions.slice(0, 5);
 
   return (
     <div className="app-container">
@@ -989,7 +994,7 @@ function App() {
           </button>
 
           <AnimatePresence>
-            {isFocused && (
+            {isFocused && suggestions.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
                 className="suggestions-dropdown"
