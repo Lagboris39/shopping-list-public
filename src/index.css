@@ -48,6 +48,21 @@ body[data-theme='dark'] .category-select-btn {
     border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
+.item-cat-btn {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 5px;
+    border-radius: 6px;
+    background-color: rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    touch-action: manipulation;
+}
+
 body[data-theme='dark'] .history-category-badge {
     opacity: 0.9;
 }
@@ -213,22 +228,88 @@ input[type="text"]:focus {
 
 .item-card {
     background: var(--card-bg);
-    padding: 8px 12px;
-    /* Restore some padding for spacing */
+    padding: 6px 8px 6px 0;
     border-radius: var(--radius);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
     box-shadow: var(--shadow);
-    cursor: pointer;
-    transition: transform 0.1s active, box-shadow 0.2s;
+    transition: transform 0.1s, box-shadow 0.2s;
     border: 1px solid var(--border);
-    min-height: 64px;
     overflow: hidden;
 }
 
 .item-card:active {
     transform: scale(0.98);
+}
+
+/* 2行レイアウト: 左エリア */
+.item-main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* 1行目: drag + category + name */
+.item-row-top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0 2px;
+}
+
+/* 2行目: 数量ステッパー */
+.item-row-bottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0 6px;
+    padding-left: 44px; /* drag-handle 幅に揃える */
+}
+
+.item-text {
+    font-weight: 700;
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.3;
+    word-break: break-word;
+    min-width: 0;
+}
+
+/* 数量ステッパー */
+.qty-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-main);
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    touch-action: manipulation;
+}
+
+.qty-btn:active {
+    background: var(--border);
+}
+
+.qty-count {
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 22px;
+    text-align: center;
+    color: var(--text-main);
+}
+
+.category-arrow {
+    font-size: 8px;
+    color: rgba(0,0,0,0.4);
+    margin-top: 2px;
 }
 
 .item-content {
@@ -237,10 +318,6 @@ input[type="text"]:focus {
     gap: 8px;
     padding-left: 8px;
     flex: 1;
-}
-
-.item-text {
-    font-weight: 500;
 }
 
 .empty-state {
@@ -311,12 +388,13 @@ input[type="text"]:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 10px;
+    padding: 4px 8px;
     cursor: grab;
     color: var(--text-secondary);
     opacity: 0.6;
     transition: opacity 0.2s;
     touch-action: none;
+    flex-shrink: 0;
 }
 
 .drag-handle:active {
@@ -327,8 +405,9 @@ input[type="text"]:focus {
     background-color: var(--success);
     color: white;
     border: none;
-    width: 64px;
-    height: 48px;
+    width: 60px;
+    height: auto;
+    align-self: stretch;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -336,9 +415,8 @@ input[type="text"]:focus {
     transition: all 0.2s ease;
     flex-shrink: 0;
     border-radius: 10px;
-    position: relative;
-    right: 8px;
-    margin-left: 12px;
+    margin: 4px 8px 4px 8px;
+    touch-action: manipulation;
 }
 
 .buy-button:active {

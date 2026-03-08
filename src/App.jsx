@@ -71,74 +71,58 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         className="item-card"
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
       >
-        <div className="item-content" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-          <div
-            className="drag-handle"
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              const timer = setTimeout(() => dragControls.start(e), 400);
-              const cancel = () => clearTimeout(timer);
-              window.addEventListener('pointerup', cancel, { once: true });
-              window.addEventListener('pointercancel', cancel, { once: true });
-            }}
-            style={{ cursor: 'grab', padding: '10px 8px' }}
-          >
-            <GripVertical size={22} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', marginLeft: '4px' }}>
+        {/* 左: 2行コンテンツ */}
+        <div className="item-main-area">
+          {/* 1行目: drag + category + name */}
+          <div className="item-row-top">
+            <div
+              className="drag-handle"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const timer = setTimeout(() => dragControls.start(e), 400);
+                const cancel = () => clearTimeout(timer);
+                window.addEventListener('pointerup', cancel, { once: true });
+                window.addEventListener('pointercancel', cancel, { once: true });
+              }}
+            >
+              <GripVertical size={20} />
+            </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 document.activeElement?.blur();
                 onChangeCategory(item);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                padding: '4px 6px',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(0,0,0,0.05)',
-                border: '1px solid rgba(0,0,0,0.1)',
-                cursor: 'pointer',
-                marginRight: '4px',
-                flexShrink: 0,
-                fontSize: '16px',
-                transition: 'background-color 0.2s'
-              }}
-              className="category-select-btn"
+              className="category-select-btn item-cat-btn"
               title="タップしてカテゴリ変更"
             >
               <span>{categoryIcons[item.category || 'other']}</span>
-              <span style={{ fontSize: '8px', color: 'rgba(0,0,0,0.4)', marginTop: '2px' }}>▼</span>
+              <span className="category-arrow">▼</span>
             </button>
-            <span className="item-text" style={{
-              fontWeight: 'bold',
-              flex: 1,
-              fontSize: '16px',
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
-              lineHeight: '1.2',
-              padding: '4px 0',
-              minWidth: 0
-            }}>{item.name}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '8px' }}>
-              <button
-                onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, -1); }}
-                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
-              >-</button>
-              <span style={{ fontSize: '16px', fontWeight: 'bold', minWidth: '20px', textAlign: 'center' }}>
-                {item.quantity || 1}
-              </span>
-              <button
-                onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, 1); }}
-                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
-              >+</button>
-            </div>
+            <span className="item-text">{item.name}</span>
+          </div>
+          {/* 2行目: 数量ステッパー */}
+          <div className="item-row-bottom">
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, -1); }}
+              className="qty-btn"
+            >－</button>
+            <span className="qty-count">{item.quantity || 1}</span>
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item.id, 1); }}
+              className="qty-btn"
+            >＋</button>
           </div>
         </div>
 
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => { setIsRevealed(false); onPurchase(item.id); }} className="buy-button">
+        {/* 右: 購入ボタン（両行にまたがる） */}
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => { setIsRevealed(false); onPurchase(item.id); }}
+          className="buy-button"
+        >
           <Check size={28} strokeWidth={3} />
         </button>
       </motion.div>
@@ -558,7 +542,7 @@ function App() {
       <header className="header">
         <div className="header-main">
           <div className="header-left">
-            <img src="/icon.png" alt="App Icon" className="app-icon" />
+            <img src={import.meta.env.BASE_URL + 'icon.png'} alt="App Icon" className="app-icon" />
             <div className="header-titles">
               <span className="sub-title">お買い物リスト</span>
               <h1 className="title">買い物行くドン！</h1>

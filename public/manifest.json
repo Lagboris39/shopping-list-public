@@ -1,7 +1,8 @@
 {
     "name": "買い物行くドン！",
     "short_name": "買い物行くドン！",
-    "start_url": "/",
+    "start_url": "./",
+    "scope": "/shopping-list-public/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4f46e5",
