@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls, animate as springAnimate } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
 
@@ -33,11 +33,15 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
   const x = useMotionValue(0);
   const dragControls = useDragControls();
 
+  const spring = { type: 'spring', stiffness: 500, damping: 40 };
+
   const handleDragEnd = (event, info) => {
     if (info.offset.x < -60) {
       setIsRevealed(true);
+      springAnimate(x, -70, spring);
     } else {
       setIsRevealed(false);
+      springAnimate(x, 0, spring);
     }
   };
 
@@ -60,8 +64,6 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
 
       <motion.div
         style={{ x, backgroundColor: catColor, position: 'relative', zIndex: 2, boxShadow: 'var(--shadow)', touchAction: 'pan-y' }}
-        animate={{ x: isRevealed ? -70 : 0 }}
-        transition={{ type: "spring", stiffness: 500, damping: 40 }}
         drag="x"
         dragDirectionLock
         dragConstraints={{ left: -70, right: 0 }}
@@ -133,11 +135,15 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const x = useMotionValue(0);
 
+  const spring = { type: 'spring', stiffness: 500, damping: 40 };
+
   const handleDragEnd = (event, info) => {
-    if (info.offset.x < -30 || info.velocity.x < -100) {
+    if (info.offset.x < -50) {
       setIsRevealed(true);
+      springAnimate(x, -60, spring);
     } else {
       setIsRevealed(false);
+      springAnimate(x, 0, spring);
     }
   };
 
@@ -162,8 +168,6 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
 
       <motion.div
         style={{ x, backgroundColor: 'var(--card-bg)', position: 'relative', zIndex: 2, touchAction: 'pan-y' }}
-        animate={{ x: isRevealed ? -60 : 0 }}
-        transition={{ type: "spring", stiffness: 500, damping: 40 }}
         drag="x"
         dragDirectionLock
         dragConstraints={{ left: -60, right: 0 }}
@@ -1146,12 +1150,6 @@ function App() {
                   width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--border)',
                   resize: 'none', backgroundColor: 'var(--bg)', color: 'var(--text-main)',
                   marginBottom: '16px', fontSize: '1rem', outline: 'none'
-                }}
-                autoFocus
-                onFocus={(e) => {
-                  setTimeout(() => {
-                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }, 350);
                 }}
               />
               <button
