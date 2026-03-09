@@ -34,8 +34,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
   const dragControls = useDragControls();
 
   const handleDragEnd = (event, info) => {
-    // Reveal threshold: 30px offset or fast flick
-    if (info.offset.x < -30 || info.velocity.x < -100) {
+    if (info.offset.x < -60) {
       setIsRevealed(true);
     } else {
       setIsRevealed(false);
@@ -638,6 +637,19 @@ function App() {
                   </button>
                 </div>
 
+                <div className="settings-section">
+                  <button
+                    onClick={() => { location.href = location.pathname + '?v=' + Date.now(); }}
+                    style={{ width: '100%', marginBottom: '8px', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
+                  >
+                    <RefreshCcw size={18} />
+                    最新版に更新
+                  </button>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0', lineHeight: 1.5, textAlign: 'center' }}>
+                    ホーム画面から開いて古い画面が表示される場合にお試しください
+                  </p>
+                </div>
+
                 <div className="drawer-footer">
                   <p>買い物行くドン！ v1.5.0</p>
                 </div>
@@ -1136,6 +1148,11 @@ function App() {
                   marginBottom: '16px', fontSize: '1rem', outline: 'none'
                 }}
                 autoFocus
+                onFocus={(e) => {
+                  setTimeout(() => {
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 350);
+                }}
               />
               <button
                 onClick={handleImport}
