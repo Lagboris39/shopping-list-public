@@ -32,6 +32,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
   const [isRevealed, setIsRevealed] = useState(false);
   const x = useMotionValue(0);
   const dragControls = useDragControls();
+  const swipeDragControls = useDragControls();
 
   const spring = { type: 'spring', stiffness: 500, damping: 40 };
 
@@ -43,6 +44,25 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       setIsRevealed(false);
       springAnimate(x, 0, spring);
     }
+  };
+
+  const handleSwipePointerDown = (e) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const saved = e;
+    const onMove = (me) => {
+      const dx = me.clientX - startX;
+      const dy = me.clientY - startY;
+      if (Math.hypot(dx, dy) < 8) return;
+      window.removeEventListener('pointermove', onMove);
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        swipeDragControls.start(saved);
+      }
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', () => {
+      window.removeEventListener('pointermove', onMove);
+    }, { once: true });
   };
 
   const catColor = item.category ? categoryColors[item.category] : categoryColors.other;
@@ -65,10 +85,12 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       <motion.div
         style={{ x, backgroundColor: catColor, position: 'relative', zIndex: 2, boxShadow: 'var(--shadow)', touchAction: 'pan-y' }}
         drag="x"
-        dragDirectionLock
+        dragListener={false}
+        dragControls={swipeDragControls}
         dragConstraints={{ left: -70, right: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
+        onPointerDown={handleSwipePointerDown}
         className="item-card"
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
       >
@@ -134,6 +156,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
 const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const x = useMotionValue(0);
+  const swipeDragControls = useDragControls();
 
   const spring = { type: 'spring', stiffness: 500, damping: 40 };
 
@@ -145,6 +168,25 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
       setIsRevealed(false);
       springAnimate(x, 0, spring);
     }
+  };
+
+  const handleSwipePointerDown = (e) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const saved = e;
+    const onMove = (me) => {
+      const dx = me.clientX - startX;
+      const dy = me.clientY - startY;
+      if (Math.hypot(dx, dy) < 8) return;
+      window.removeEventListener('pointermove', onMove);
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        swipeDragControls.start(saved);
+      }
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', () => {
+      window.removeEventListener('pointermove', onMove);
+    }, { once: true });
   };
 
   const itemCategory = item.category ?? 'other';
@@ -169,10 +211,12 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
       <motion.div
         style={{ x, backgroundColor: 'var(--card-bg)', position: 'relative', zIndex: 2, touchAction: 'pan-y' }}
         drag="x"
-        dragDirectionLock
+        dragListener={false}
+        dragControls={swipeDragControls}
         dragConstraints={{ left: -60, right: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
+        onPointerDown={handleSwipePointerDown}
         className="history-item-card"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
