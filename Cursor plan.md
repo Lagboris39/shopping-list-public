@@ -1,142 +1,129 @@
-## 目的
+# Cursor Plan — 買い物行くドン！ 引き継ぎドキュメント
 
-`shopping-list-public`（ローカルPWA）の **「操作後にUIが反応しなくなる／止まったように見える」不具合** を、現状コードの構造から最短で潰すための、他AI向け引き継ぎ用プラン。
-
----
-
-## 現状の前提（貼り付けプランとの整合）
-
-貼り付けてもらった「一般公開向けローカルPWA化」計画の主要部分は、現状コードに **概ね反映済み** に見える。
-
-- **通信排除**: API/pollingなし（ローカル完結）
-- **永続化**: IndexedDB（`idb`）で `items/history/learnedCategories/settings`
-- **1画面統合**: 入力欄＋「一括追加」「履歴」＋履歴モーダル（直追加＋日付）＋数量ステッパー＋カテゴリ変更モーダル
-- **カテゴリ辞書＋自己学習**: `categoryDict`＋`learnedCategories`（IndexedDB）
-- **設定/ヘルプ**: 設定ドロワー、テーマ、チュートリアル、カテゴリ順カスタム
+他AIセッション向けの引き継ぎ用プラン。実装済み内容・現状の構成・次フェーズのタスクをまとめる。
 
 ---
 
-## UI停止の原因候補（優先度順）
+## 実装済み（完了）
 
-### 1) （最有力）並び替え中に IndexedDB へ「全件保存」を連打している
+### バグ修正
+- [x] Reorder中のIndexedDB連打を debounce（400ms）で修正 → UI停止解消
+- [x] pointercancel 未対応を修正（長押しタイマーのキャンセル漏れ）
+- [x] モーダル/ドロワーの exit アニメーション中にオーバーレイが pointer events をブロックし続けていた問題を修正（`pointerEvents: 'none'` を exit variants に追加）
 
-- 対象: `src/App.jsx` の `Reorder.Group onReorder` → `handleReorder()` → `saveItems()`
-- 事象: `onReorder` はドラッグ中に高頻度で発火しうるのに、`handleReorder` が `await saveItems(updatedItems)` を行う。
-- `src/db.js` の `saveItems(items)` は毎回 `clear()` → 全件 `put()` のため重い。
-- `handleReorder` は `async` だが呼び出し側が `await` していないため、ドラッグ中に「未完了の保存」が積み上がり、メインスレッドが詰まって UI が止まったように見える可能性が高い。
+### 機能追加
+- [x] **「どっちがお得？計算機」** — 右下固定FABから Bottom Sheet を表示。値段・内容量を入力すると単価を自動計算し、安い方のカードを緑ハイライト＋「✓ 安い！」バッジで強調表示。単位選択なし、商品名欄なし、シンプル設計。
+- [x] **サジェスト機能の頻度ランキング** — `useMemo` で `history` の購入回数を集計し、頻度順にソートしてレコメンド表示。空のドロップダウン防止（`suggestions.length > 0` 条件追加）。
+- [x] **履歴モーダルの「履歴に追加」UI改善** — 常時表示の入力欄を廃止し、「＋ 履歴に追加」ボタンをタップで展開する折りたたみ式に変更。追加完了後は自動で閉じる。
 
-### 2) Reorder.Group の直下に AnimatePresence を挟んでいる（相性問題）
+### UI改善
+- [x] **アイテムカードの2行→1行化** — 数量ステッパーを横並び（－ N ＋）から縦3段（▲ / 数字 / ▼）に変更し横幅を削減。品名表示幅を大幅に確保。
+- [x] **縦ステッパーのコンパクト化** — ▲▼ボタンを横長（36×14px）、数量文字を大きく（17px/800）、カードのpaddingを削減して縦幅を圧縮。
+- [x] **カテゴリ色・テーマ** — ダークモード向けカテゴリ色を上書き定義。
+- [x] **購入ボタン（✓）と数量＋ボタンの間隔調整** — `margin-left` を追加。
 
-- 対象: `src/App.jsx` のメインリスト（カテゴリごとの `Reorder.Group`）
-- 構造: `Reorder.Group` → `AnimatePresence` → `SwipeableItem(内部で Reorder.Item)`
-- `AnimatePresence` は exit 中にDOMを保持するため、Reorder のレイアウト計算とDOMのタイミングがズレて不安定化し、停止/固まりの引き金になりうる。
-
-### 3) （補助）カテゴリ順カスタムでもドラッグ中に保存を連打している
-
-- 対象: `src/App.jsx` のカテゴリ並び替えモーダル `Reorder.Group` の `onReorder` 内で `await saveSetting(...)`
-- 件数が少ないので影響は小さめだが、同じパターン（ドラッグ中に永続化連打）を抱える。
-
-### 4) （補助）ドラッグ開始タイマーが pointercancel を考慮していない
-
-- 対象: `src/App.jsx` のドラッグハンドル `onPointerDown`
-- タッチ環境で `pointercancel` が起きたときにタイマーが残ると、意図しない drag 開始や競合が起きうる。
+### デプロイ・PWA
+- [x] **GitHub Pages デプロイ** — `vite.config.js` に `base: '/shopping-list-public/'` を追加、GitHub Actions ワークフロー（`.github/workflows/deploy.yml`）を作成。`main` ブランチ push で自動ビルド＆デプロイ。
+  - 公開URL: `https://lagboris39.github.io/shopping-list-public/`
+- [x] **PWAパス修正** — `manifest.json` の `start_url: "./"` + `scope: "/shopping-list-public/"` に修正、`index.html` のリソースパスを `%BASE_URL%` 形式に統一、`App.jsx` のアイコンパスを `import.meta.env.BASE_URL + 'icon.png'` に修正。
 
 ---
 
-## 修正方針（何をどう直すか）
+## 現在のコード構成（主要ファイル）
 
-### Fix A（最優先）Reorder中は IndexedDB 保存しない（保存は最後の1回だけ）
-
-- **方針**:
-  - `onReorder` は **state更新だけ**（永続化しない）
-  - 永続化は次のいずれかで **最後の1回だけ**
-    - ドラッグ終了（pointerup/drag end）タイミング
-    - debounce（例: 300–500ms 無操作後）
-  - すでに保存実行中なら
-    - 「最後の状態だけ保存」へ上書き（キュー/直列化/キャンセル可能な仕組み）
-- **狙い**: UI停止の本命を外す（I/Oと同期的負荷をドラッグ操作から切り離す）
-
-### Fix B（優先）メインリストの Reorder.Group 直下から AnimatePresence を外す
-
-- **方針**:
-  - `Reorder.Group` の直下は `Reorder.Item` だけ（＝`SwipeableItem` 内の `Reorder.Item` だけ）に寄せる
-- **狙い**: Reorder の内部計算とDOMの整合を取り、固まり要因を減らす
-
-### Fix C（必要なら）saveItems を軽くする
-
-- **最小変更**: Fix A/B の後でも重い場合のみ
-- **選択肢**:
-  - 書き込みの直列化（write-lock）で transaction の多重発行を防止
-  - データモデル変更（items全体を1レコード化）※影響大
-
-### Fix D（任意）pointercancel 対応
-
-- **方針**: `pointerup` と同様に `pointercancel` でも長押しタイマーを解除
+| ファイル | 内容 |
+|---|---|
+| `src/App.jsx` | 全UI・ロジック（約1300行）。`SwipeableItem` / `SwipeableHistoryItem` コンポーネント含む |
+| `src/db.js` | IndexedDB操作。`items` / `history` / `learnedCategories` / `settings` の4ストア。`saveItems` に直列化キュー実装済み |
+| `src/categoryDict.js` | 11カテゴリの辞書・色・アイコン・無視リスト定義 |
+| `src/index.css` | CSS変数ベースのライト/ダークテーマ。モバイルファースト、最大幅500px |
+| `public/manifest.json` | PWAマニフェスト（`start_url: "./"`, `scope: "/shopping-list-public/"` 設定済み）|
+| `vite.config.js` | `base: '/shopping-list-public/'` 設定済み |
+| `.github/workflows/deploy.yml` | GitHub Actions（node 20 + peaceiris/actions-gh-pages@v4）|
 
 ---
 
-## 実施順（推奨）
+## 次フェーズのタスク（未実装・次セッションで着手）
 
-```mermaid
-flowchart LR
-  reproduce[再現条件の切り分け] --> fixA[Fix_A:Reorder中は保存しない]
-  fixA --> verify1[停止/固まりが消えたか確認]
-  verify1 --> fixB[Fix_B:AnimatePresenceを外す]
-  fixB --> verify2[再確認]
-  verify2 --> fixC[Fix_C:saveItems最適化(必要なら)]
-  verify2 --> fixD[Fix_D:pointercancel対応(任意)]
+### 1. スワイプ挙動の改善（優先度: 高）
+
+**現状の問題:**
+- 左スワイプで削除ボタンが露出し、スワイプを離した瞬間にそのまま保持される場合がある
+- ユーザーの意図しないタイミングで削除ボタンが露出したまま残りやすい
+
+**方針:**
+- 左限界（`dragConstraints.left = -70`）まで到達した場合のみ `isRevealed = true` で保持
+- それ以外（途中で離した場合）は必ず `isRevealed = false` に戻す
+- 現在の判定条件 `info.offset.x < -30 || info.velocity.x < -100` を見直し、**速度ではなく到達位置**を優先基準にする
+- 実装箇所: `src/App.jsx` の `SwipeableItem` 内 `handleDragEnd` 関数（`dragConstraints={{ left: -70, right: 0 }}`）
+
+```js
+// 修正方針
+const handleDragEnd = (event, info) => {
+  // 左限界付近（-60px以上）まで到達した場合のみ保持
+  if (info.offset.x < -60) {
+    setIsRevealed(true);
+  } else {
+    setIsRevealed(false);
+  }
+};
 ```
 
 ---
 
-## 確認観点（最低限）
+### 2. 買い物リストの共有機能（優先度: 高）
 
-- 並び替えを何度も繰り返しても UI が固まらない
-- 並び替え直後に「購入（チェック）」「スワイプ削除」「数量±」「カテゴリ変更」を連打しても固まらない
-- 履歴モーダルの検索・日付指定追加・再登録を行っても固まらない
+**仕様:**
+
+#### 送信側の操作
+1. ヘッダー or 設定ドロワーに「共有」ボタンを追加
+2. タップするとリストをテキスト整形して表示（例）:
+   ```
+   【買い物リスト】
+   🥦 ブロッコリー
+   🥛 牛乳 ×2
+   🍎 りんご
+   ```
+3. Web Share API（`navigator.share`）でLINE等に送信。非対応端末はクリップボードコピーにフォールバック
+4. 共有後、「リストを履歴に移動しますか？」確認ダイアログを表示
+   - 「移動する」→ 全アイテムを今日の日付で履歴に追加し、リストをクリア
+   - 「このまま残す」→ 何もしない
+
+#### 受信側の操作
+- 受け取ったテキストを「一括追加」の入力欄に貼り付けることで登録できる（既存機能で対応可能）
+- ※ URL共有（クリック1つで登録）はバックエンドが必要なため今回は不採用
+
+**実装箇所:**
+- `src/App.jsx` のヘッダー右ボタン列に共有ボタン（`Share2` アイコン）を追加
+- 共有テキスト整形関数 `formatShareText(items)` を追加
+- 確認ダイアログは既存の `bottomSheetVariants` + `AnimatePresence` パターンで実装
+- `navigator.share` 非対応時は `navigator.clipboard.writeText` にフォールバック
 
 ---
 
-## 未実装（全体計画に含まれるが、UI停止バグ修正とは別フェーズ）
+### 3. 初回チュートリアルを無効化（優先度: 低）
 
-ここから先は「バグ修正が落ち着いた後」に着手する想定。UI停止の原因切り分け中は混ぜない（同時に入れると原因が追いにくくなる）。
+**現状:** アプリ初回起動時にチュートリアルモーダルが全画面表示される（`localStorage.getItem('hasSeenTutorial')` で制御）
 
-- **「どっちがお得？計算機」**（単価比較機能）
-  - 方針案: 右下ボタンから Bottom Sheet を `AnimatePresence` で表示し、入力（価格・内容量）から \(100g\) / \(100ml\) あたり等を算出して比較表示。
-  - 注意: メインの `Reorder.Group` とは独立したモーダルとして実装し、Reorder配下には入れない。
-- **共有機能**（URL共有等）の検討
-  - 方針案: Web Share API（対応端末）＋フォールバック（URLコピー）など。
-  - データの共有形態（URLに埋める/短縮/クラウドに置く/ローカルのみ）を先に決める必要あり。
-- **オフライン対応（PWA ServiceWorker）の微調整**
-  - 方針案: 既存のSW/manifest構成を確認し、キャッシュ戦略（静的資産＋アイコン等）を整理。
-  - 注意: UI停止調査中にSWを触ると「キャッシュが古くて挙動が変」になりやすいので、バグ修正後に実施。
+**方針:** チュートリアル自体は削除せず、初回自動表示だけを無効化する。
+
+```js
+// src/App.jsx
+// Before
+const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('hasSeenTutorial'));
+
+// After（常にfalseで初期化 → 自動表示しない）
+const [showTutorial, setShowTutorial] = useState(false);
+```
+
+設定ドロワーの「アプリの使い方を見る」ボタンからは引き続き手動で開けるので機能は残す。
 
 ---
 
-## 追加：全体計画に含まれていたが、現状コードでは未実装（または未着手）に見える項目
+## 技術メモ
 
-上の3点に加えて、貼り付け計画内にあり、現状の `shopping-list-public` では **まだ実装されていない可能性が高い** ものを明示する（他AIが「どこまで終わっているか」を誤解しないため）。
-
-- **マネタイズ設定枠（設定画面）**
-  - 目的: Stripe Payment Links への導線＋自己申告「応援しました！」→ `settings.isPremium=true` を保存し、テーマカラー/フォント等をアンロック。
-  - 現状: 設定ドロワーはあるが、Stripeリンクや `isPremium` の保存・分岐が見当たらない。
-  - 進め方（案）:
-    - まず `settings` ストアに `isPremium`（boolean）を追加して読み書き（既存の `getSetting/saveSetting` を流用）。
-    - 設定ドロワーに「応援リンク」＋「応援しました！」ボタンを追加。
-    - `isPremium` に応じて「テーマカラー/フォント」設定UIを表示（非premiumは非表示/ロック表示）。
-
-- **公開準備（ビルドとデプロイ手順の固定化）**
-  - 目的: Viteビルド成果物を Vercel/Netlify/GitHub Pages のどれかへデプロイし、一般公開（アクセスだけで使える・ホーム追加でPWA）を成立させる。
-  - 現状: デプロイ先の選定・手順書（例: `README.md`）がプロジェクト内に見当たらない。
-  - 進め方（案）:
-    - デプロイ先を決める（Vercel/Netlify/Pages）。
-    - `README.md` に「build/preview」「PWA確認手順（iOS/Android）」「更新時のキャッシュ対策」を明記。
-
-- **共有機能の仕様決め（実装前の必須タスク）**
-  - 共有の“中身”を先に決めないと実装がブレる。
-  - 候補:
-    - **テキスト共有**（買い物リストを整形して共有）: すぐ実装可能、プライバシー安全。
-    - **URL共有（状態をURLへエンコード）**: 便利だが長くなりがち、復元ロジックが必要。
-    - **URL共有（クラウドに保存して短いURL）**: バックエンド復活が必要（当初方針と衝突しやすい）。
-
-
+- **IndexedDB 保存パターン**: `reorderSaveTimeoutRef` で debounce（400ms）。ドラッグ中は state のみ更新し、停止後に1回だけ保存する設計。
+- **アニメーション**: `framer-motion` の `Reorder.Group` + `Reorder.Item`。`AnimatePresence` と組み合わせる場合は exit アニメーションが pointer events をブロックしないよう `variants` の `exit` に `pointerEvents: 'none'` が必須。
+- **テーマ**: `body[data-theme='dark/light/system']` で切り替え。CSS変数（`--bg`, `--card-bg`, `--text-main` 等）がベース。
+- **スマホ入力**: 数値入力は `type="text" inputMode="decimal" pattern="[0-9.]*"` を使用（スピナー非表示）。
+- **デプロイ**: `main` ブランチ push → GitHub Actions が `npm run build` → `gh-pages` ブランチに自動公開。

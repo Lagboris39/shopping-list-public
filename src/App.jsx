@@ -223,7 +223,7 @@ function App() {
   const [categoryOrder, setCategoryOrder] = useState(Object.keys(categoryNames));
   const [selectedItemForCategory, setSelectedItemForCategory] = useState(null);
   const [isCategoryOrderMode, setIsCategoryOrderMode] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('hasSeenTutorial'));
+  const [showTutorial, setShowTutorial] = useState(false);
   const [showPriceCalc, setShowPriceCalc] = useState(false);
   const [calcA, setCalcA] = useState({ price: '', amount: '' });
   const [calcB, setCalcB] = useState({ price: '', amount: '' });
@@ -676,7 +676,7 @@ function App() {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="drawer-overlay" onClick={() => setShowHistory(false)}
+              className="drawer-overlay" onClick={() => { setShowHistory(false); setShowDirectAdd(false); }}
             />
             <motion.div
               key="history-modal"
@@ -691,7 +691,7 @@ function App() {
                 <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <History size={24} /> 過去の履歴
                 </h2>
-                <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={28} /></button>
+                <button onClick={() => { setShowHistory(false); setShowDirectAdd(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={28} /></button>
               </div>
 
               <div style={{ marginBottom: '16px', flexShrink: 0 }}>
@@ -1212,25 +1212,32 @@ function App() {
                   {/* 商品A */}
                   <div className={`price-calc-card${winner === 'A' ? ' calc-result-winner' : ''}`}>
                     <div className="price-calc-card-label">商品 A</div>
-                    <input
-                      className="search-input"
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9.]*"
-                      placeholder="値段（円）"
-                      value={calcA.price}
-                      onChange={(e) => setCalcA(p => ({ ...p, price: e.target.value }))}
-                      style={{ marginBottom: '8px' }}
-                    />
-                    <input
-                      className="search-input"
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9.]*"
-                      placeholder="内容量"
-                      value={calcA.amount}
-                      onChange={(e) => setCalcA(p => ({ ...p, amount: e.target.value }))}
-                    />
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                      <input
+                        className="search-input"
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9.]*"
+                        placeholder="値段"
+                        value={calcA.price}
+                        onChange={(e) => setCalcA(p => ({ ...p, price: e.target.value }))}
+                        style={{ paddingRight: '26px', width: '100%' }}
+                      />
+                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>円</span>
+                    </div>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        className="search-input"
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9.]*"
+                        placeholder="内容量"
+                        value={calcA.amount}
+                        onChange={(e) => setCalcA(p => ({ ...p, amount: e.target.value }))}
+                        style={{ paddingRight: '26px', width: '100%' }}
+                      />
+                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>量</span>
+                    </div>
                     <div className="price-calc-result-unit">
                       {unitPriceA !== null ? `単価 ${unitPriceA.toFixed(2)}円` : '---'}
                     </div>
@@ -1243,25 +1250,32 @@ function App() {
                   {/* 商品B */}
                   <div className={`price-calc-card${winner === 'B' ? ' calc-result-winner' : ''}`}>
                     <div className="price-calc-card-label">商品 B</div>
-                    <input
-                      className="search-input"
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9.]*"
-                      placeholder="値段（円）"
-                      value={calcB.price}
-                      onChange={(e) => setCalcB(p => ({ ...p, price: e.target.value }))}
-                      style={{ marginBottom: '8px' }}
-                    />
-                    <input
-                      className="search-input"
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9.]*"
-                      placeholder="内容量"
-                      value={calcB.amount}
-                      onChange={(e) => setCalcB(p => ({ ...p, amount: e.target.value }))}
-                    />
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                      <input
+                        className="search-input"
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9.]*"
+                        placeholder="値段"
+                        value={calcB.price}
+                        onChange={(e) => setCalcB(p => ({ ...p, price: e.target.value }))}
+                        style={{ paddingRight: '26px', width: '100%' }}
+                      />
+                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>円</span>
+                    </div>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        className="search-input"
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9.]*"
+                        placeholder="内容量"
+                        value={calcB.amount}
+                        onChange={(e) => setCalcB(p => ({ ...p, amount: e.target.value }))}
+                        style={{ paddingRight: '26px', width: '100%' }}
+                      />
+                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>量</span>
+                    </div>
                     <div className="price-calc-result-unit">
                       {unitPriceB !== null ? `単価 ${unitPriceB.toFixed(2)}円` : '---'}
                     </div>
