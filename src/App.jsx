@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale } from 'lucide-react';
+import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
@@ -227,6 +227,12 @@ function App() {
   const [showPriceCalc, setShowPriceCalc] = useState(false);
   const [calcA, setCalcA] = useState({ price: '', amount: '' });
   const [calcB, setCalcB] = useState({ price: '', amount: '' });
+  const [listZoom, setListZoom] = useState(
+    () => parseFloat(localStorage.getItem('listZoom') || '1')
+  );
+
+  const zoomIn  = () => { const v = Math.min(1.2, Math.round((listZoom + 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
+  const zoomOut = () => { const v = Math.max(0.6, Math.round((listZoom - 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
 
   const reorderSaveTimeoutRef = useRef(null);
   const categoryOrderSaveTimeoutRef = useRef(null);
@@ -1039,7 +1045,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="list-container">
+            <div className="list-container" style={{ zoom: listZoom }}>
               {items.length === 0 ? (
                 <div className="empty-state">
                   <ShoppingBag size={48} className="empty-icon" />
@@ -1143,6 +1149,25 @@ function App() {
         )}
       </AnimatePresence>
 
+      {/* Zoom Control (left-bottom floating) */}
+      <div style={{
+        position: 'fixed', bottom: '24px', left: '16px', zIndex: 100,
+        display: 'flex', alignItems: 'center', gap: '2px',
+        background: 'var(--card-bg)', borderRadius: '999px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.18)', border: '1px solid var(--border)',
+        padding: '4px 6px'
+      }}>
+        <button onClick={zoomOut} disabled={listZoom <= 0.6} className="zoom-btn" title="縮小">
+          <ZoomOut size={16} />
+        </button>
+        <span style={{ fontSize: '11px', minWidth: '30px', textAlign: 'center', color: 'var(--text-main)', fontWeight: '600', userSelect: 'none' }}>
+          {Math.round(listZoom * 100)}%
+        </span>
+        <button onClick={zoomIn} disabled={listZoom >= 1.2} className="zoom-btn" title="拡大">
+          <ZoomIn size={16} />
+        </button>
+      </div>
+
       {/* Price Comparison FAB */}
       <button
         className="price-calc-fab"
@@ -1212,31 +1237,31 @@ function App() {
                   {/* 商品A */}
                   <div className={`price-calc-card${winner === 'A' ? ' calc-result-winner' : ''}`}>
                     <div className="price-calc-card-label">商品 A</div>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-sub, #888)', marginBottom: '3px', fontWeight: '600' }}>値段（円）</div>
                       <input
                         className="search-input"
                         type="text"
                         inputMode="decimal"
                         pattern="[0-9.]*"
-                        placeholder="値段"
+                        placeholder="例: 198"
                         value={calcA.price}
                         onChange={(e) => setCalcA(p => ({ ...p, price: e.target.value }))}
-                        style={{ paddingRight: '26px', width: '100%' }}
+                        style={{ width: '100%' }}
                       />
-                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>円</span>
                     </div>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-sub, #888)', marginBottom: '3px', fontWeight: '600' }}>内容量</div>
                       <input
                         className="search-input"
                         type="text"
                         inputMode="decimal"
                         pattern="[0-9.]*"
-                        placeholder="内容量"
+                        placeholder="例: 500"
                         value={calcA.amount}
                         onChange={(e) => setCalcA(p => ({ ...p, amount: e.target.value }))}
-                        style={{ paddingRight: '26px', width: '100%' }}
+                        style={{ width: '100%' }}
                       />
-                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>量</span>
                     </div>
                     <div className="price-calc-result-unit">
                       {unitPriceA !== null ? `単価 ${unitPriceA.toFixed(2)}円` : '---'}
@@ -1250,31 +1275,31 @@ function App() {
                   {/* 商品B */}
                   <div className={`price-calc-card${winner === 'B' ? ' calc-result-winner' : ''}`}>
                     <div className="price-calc-card-label">商品 B</div>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-sub, #888)', marginBottom: '3px', fontWeight: '600' }}>値段（円）</div>
                       <input
                         className="search-input"
                         type="text"
                         inputMode="decimal"
                         pattern="[0-9.]*"
-                        placeholder="値段"
+                        placeholder="例: 198"
                         value={calcB.price}
                         onChange={(e) => setCalcB(p => ({ ...p, price: e.target.value }))}
-                        style={{ paddingRight: '26px', width: '100%' }}
+                        style={{ width: '100%' }}
                       />
-                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>円</span>
                     </div>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-sub, #888)', marginBottom: '3px', fontWeight: '600' }}>内容量</div>
                       <input
                         className="search-input"
                         type="text"
                         inputMode="decimal"
                         pattern="[0-9.]*"
-                        placeholder="内容量"
+                        placeholder="例: 500"
                         value={calcB.amount}
                         onChange={(e) => setCalcB(p => ({ ...p, amount: e.target.value }))}
-                        style={{ paddingRight: '26px', width: '100%' }}
+                        style={{ width: '100%' }}
                       />
-                      <span style={{ position: 'absolute', right: '8px', color: 'var(--text-sub, #888)', fontSize: '12px', pointerEvents: 'none', fontWeight: 'bold' }}>量</span>
                     </div>
                     <div className="price-calc-result-unit">
                       {unitPriceB !== null ? `単価 ${unitPriceB.toFixed(2)}円` : '---'}
