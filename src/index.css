@@ -1127,3 +1127,23 @@ input[type="text"]:focus {
     border: 1px solid var(--border);
     border-radius: 8px;
 }
+
+.star-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 5px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+    opacity: 0.6;
+}
+.star-btn:hover { opacity: 1; }
+
+.item-emoji {
+    margin-left: 4px;
+    font-size: 14px;
+}

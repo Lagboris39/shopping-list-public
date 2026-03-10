@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut } from 'lucide-react';
+import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls, animate as springAnimate } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
@@ -28,7 +28,65 @@ const drawerTransition = {
   ease: 'easeOut'
 };
 
-const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity }) => {
+const emojiDict = {
+  'キャベツ': '🥬', 'レタス': '🥬', 'ほうれん草': '🥬', '小松菜': '🥬', '白菜': '🥬',
+  'にんじん': '🥕', 'ニンジン': '🥕', '人参': '🥕',
+  'じゃがいも': '🥔', 'ジャガイモ': '🥔',
+  'たまねぎ': '🧅', 'タマネギ': '🧅', '玉ねぎ': '🧅', '玉葱': '🧅',
+  'にんにく': '🧄', 'ニンニク': '🧄',
+  'ブロッコリー': '🥦',
+  'きゅうり': '🥒', 'キュウリ': '🥒',
+  'とうもろこし': '🌽', 'コーン': '🌽',
+  'トマト': '🍅', 'ミニトマト': '🍅',
+  'なす': '🍆', 'ナス': '🍆',
+  'さつまいも': '🍠', 'サツマイモ': '🍠',
+  'りんご': '🍎', 'リンゴ': '🍎',
+  'みかん': '🍊', 'ミカン': '🍊', 'オレンジ': '🍊',
+  'レモン': '🍋',
+  'バナナ': '🍌',
+  'ぶどう': '🍇', 'ブドウ': '🍇',
+  'いちご': '🍓', 'イチゴ': '🍓',
+  'すいか': '🍉', 'スイカ': '🍉',
+  'もも': '🍑', 'モモ': '🍑', '桃': '🍑',
+  '洋梨': '🍐', 'ナシ': '🍐',
+  'メロン': '🍈',
+  'さくらんぼ': '🍒', 'チェリー': '🍒',
+  '牛肉': '🥩', '豚肉': '🥩', 'ひき肉': '🥩', 'ステーキ': '🥩',
+  '鶏肉': '🍗', 'とりにく': '🍗', '鶏もも': '🍗',
+  '魚': '🐟', 'サーモン': '🐟', 'マグロ': '🐟', 'さば': '🐟', 'サバ': '🐟',
+  'エビ': '🦐', 'えび': '🦐',
+  '卵': '🥚', 'たまご': '🥚', 'タマゴ': '🥚',
+  '牛乳': '🥛', 'ミルク': '🥛',
+  'バター': '🧈',
+  'チーズ': '🧀',
+  'ヨーグルト': '🫙',
+  'パン': '🍞', '食パン': '🍞',
+  'お米': '🍚', '米': '🍚', 'ご飯': '🍚',
+  'うどん': '🍜', 'ラーメン': '🍜', 'パスタ': '🍝', 'そば': '🍜',
+  'お茶': '🍵', '緑茶': '🍵', '麦茶': '🍵',
+  'コーヒー': '☕',
+  'ジュース': '🧃',
+  'ビール': '🍺',
+  'ワイン': '🍷',
+  'チョコレート': '🍫', 'チョコ': '🍫',
+  'アイスクリーム': '🍦', 'アイス': '🍦',
+  'クッキー': '🍪', 'ビスケット': '🍪',
+  'ケーキ': '🎂',
+  '塩': '🧂',
+  'シャンプー': '🧴', 'リンス': '🧴', 'コンディショナー': '🧴',
+  '洗剤': '🧹', '洗濯洗剤': '🧺',
+  'ティッシュ': '🧻', 'トイレットペーパー': '🧻',
+  '歯ブラシ': '🪥', '歯磨き粉': '🪥',
+};
+
+const getItemEmoji = (name) => {
+  for (const [keyword, emoji] of Object.entries(emojiDict)) {
+    if (name.includes(keyword)) return emoji;
+  }
+  return null;
+};
+
+const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const x = useMotionValue(0);
   const dragControls = useDragControls();
@@ -66,6 +124,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
   };
 
   const catColor = item.category ? categoryColors[item.category] : categoryColors.other;
+  const emoji = getItemEmoji(item.name);
 
   return (
     <Reorder.Item
@@ -121,9 +180,20 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
               <span>{categoryIcons[item.category || 'other']}</span>
               <span className="category-arrow">▼</span>
             </button>
-            <span className="item-text">{item.name}</span>
+            <span className="item-text">{item.name}{emoji && <span className="item-emoji">{emoji}</span>}</span>
           </div>
         </div>
+
+        {/* 星ボタン */}
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
+          className="star-btn"
+          style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
+          title={item.starred ? '優先を解除' : '優先にする'}
+        >
+          <Star size={15} fill={item.starred ? '#f59e0b' : 'none'} />
+        </button>
 
         {/* 縦ステッパー */}
         <div className="qty-vertical">
@@ -277,6 +347,7 @@ function App() {
   const [listZoom, setListZoom] = useState(
     () => parseFloat(localStorage.getItem('listZoom') || '1')
   );
+  const [showShareConfirm, setShowShareConfirm] = useState(false);
 
   const zoomIn  = () => { const v = Math.min(1.2, Math.round((listZoom + 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
   const zoomOut = () => { const v = Math.max(0.6, Math.round((listZoom - 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
@@ -367,7 +438,8 @@ function App() {
       name: name.trim(),
       category: getInitialCategory(name),
       created_at: new Date().toISOString(),
-      order_index: items.length > 0 ? items[items.length - 1].order_index + 1 : 0
+      order_index: items.length > 0 ? items[items.length - 1].order_index + 1 : 0,
+      starred: false,
     };
 
     const newItems = [...items, newItem];
@@ -474,6 +546,63 @@ function App() {
     showSuccess(`「${categoryNames[nextCategory]}」に分類しました`);
   };
 
+  const toggleStar = async (id) => {
+    const newItems = items.map(i => i.id === id ? { ...i, starred: !i.starred } : i);
+    setItems(newItems);
+    await saveItems(newItems);
+  };
+
+  const formatShareText = (itemsList) => {
+    const lines = itemsList.map(item => {
+      const icon = categoryIcons[item.category || 'other'] || '🛒';
+      const qty = (item.quantity || 1) > 1 ? ` ×${item.quantity}` : '';
+      return `${icon} ${item.name}${qty}`;
+    });
+    return `【買い物リスト】\n${lines.join('\n')}`;
+  };
+
+  const handleShare = async () => {
+    const text = formatShareText(items);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+        setShowShareConfirm(true);
+      } catch {
+        // キャンセルした場合は何もしない
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        showSuccess('クリップボードにコピーしました');
+        setShowShareConfirm(true);
+      } catch {
+        showError('コピーに失敗しました');
+      }
+    }
+  };
+
+  const handleMoveToHistory = async () => {
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+    const existingNames = history
+      .filter(h => h.purchased_date === today)
+      .map(h => h.name.toLowerCase());
+    const newEntries = items
+      .filter(item => !existingNames.includes(item.name.toLowerCase()))
+      .map(item => ({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        name: item.name,
+        purchased_date: today,
+        category: item.category || 'other',
+      }));
+    const newHistory = [...newEntries, ...history];
+    setHistory(newHistory);
+    await saveHistory(newHistory);
+    setItems([]);
+    await saveItems([]);
+    setShowShareConfirm(false);
+    showSuccess('履歴に移動しました');
+  };
+
   const updateQuantity = async (id, delta) => {
     const newItems = items.map(i => {
       if (i.id === id) {
@@ -555,7 +684,8 @@ function App() {
           quantity: p.quantity,
           category: cat,
           created_at: new Date().toISOString(),
-          order_index: newItems.length > 0 ? newItems[newItems.length - 1].order_index + 1 : 0
+          order_index: newItems.length > 0 ? newItems[newItems.length - 1].order_index + 1 : 0,
+          starred: false,
         });
       }
       itemsModified = true;
@@ -608,6 +738,11 @@ function App() {
             </div>
           </div>
           <div className="header-right" style={{ display: 'flex', gap: '12px' }}>
+            {items.length > 0 && (
+              <button className="menu-toggle" onClick={handleShare} title="リストを共有">
+                <Share2 size={22} />
+              </button>
+            )}
             <button className="menu-toggle" onClick={() => { document.activeElement?.blur(); setIsMenuOpen(true); }}>
               <PawPrint size={22} />
             </button>
@@ -1114,44 +1249,88 @@ function App() {
                 </div>
               ) : (
                 <>
-                  {categoryOrder
-                    .filter(catKey => items.some(i => (i.category || 'other') === catKey))
-                    .map(catKey => {
-                      const catItems = items.filter(i => (i.category || 'other') === catKey);
-                      return (
-                        <div key={catKey} className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                          <div className="category-sidebar" style={{
-                            width: '40px', flexShrink: 0,
-                            backgroundColor: categoryColors[catKey] || categoryColors.other,
-                            borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
-                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
-                          }}>
-                            {categoryIcons[catKey] || '🏷️'}
+                  {/* 星付きアイテム（最上部固定） */}
+                  {(() => {
+                    const starredItems = items.filter(i => i.starred);
+                    const nonStarredItems = items.filter(i => !i.starred);
+                    return (
+                      <>
+                        {starredItems.length > 0 && (
+                          <div className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                            <div className="category-sidebar" style={{
+                              width: '40px', flexShrink: 0,
+                              backgroundColor: '#fef3c7',
+                              borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
+                              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+                            }}>
+                              ⭐
+                            </div>
+                            <Reorder.Group
+                              axis="y"
+                              values={starredItems}
+                              onReorder={(newOrder) => {
+                                handleReorder([...newOrder, ...nonStarredItems]);
+                              }}
+                              style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
+                            >
+                              {starredItems.map((item) => (
+                                <SwipeableItem
+                                  key={item.id}
+                                  item={item}
+                                  onPurchase={purchaseItem}
+                                  onDelete={deleteItem}
+                                  onChangeCategory={(i) => setSelectedItemForCategory(i)}
+                                  onUpdateQuantity={updateQuantity}
+                                  onToggleStar={toggleStar}
+                                />
+                              ))}
+                            </Reorder.Group>
                           </div>
-                          <Reorder.Group
-                            axis="y"
-                            values={catItems}
-                            onReorder={(newOrder) => {
-                              const newItems = items.filter(i => (i.category || 'other') !== catKey);
-                              handleReorder([...newItems, ...newOrder]);
-                            }}
-                            style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
-                          >
-                            {catItems.map((item) => (
-                              <SwipeableItem
-                                key={item.id}
-                                item={item}
-                                onPurchase={purchaseItem}
-                                onDelete={deleteItem}
-                                onChangeCategory={(i) => setSelectedItemForCategory(i)}
-                                onUpdateQuantity={updateQuantity}
-                              />
-                            ))}
-                          </Reorder.Group>
-                        </div>
-                      )
-                    })}
+                        )}
+                        {/* カテゴリグループ（非星アイテム） */}
+                        {categoryOrder
+                          .filter(catKey => nonStarredItems.some(i => (i.category || 'other') === catKey))
+                          .map(catKey => {
+                            const catItems = nonStarredItems.filter(i => (i.category || 'other') === catKey);
+                            return (
+                              <div key={catKey} className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                <div className="category-sidebar" style={{
+                                  width: '40px', flexShrink: 0,
+                                  backgroundColor: categoryColors[catKey] || categoryColors.other,
+                                  borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
+                                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+                                }}>
+                                  {categoryIcons[catKey] || '🏷️'}
+                                </div>
+                                <Reorder.Group
+                                  axis="y"
+                                  values={catItems}
+                                  onReorder={(newOrder) => {
+                                    const others = items.filter(i => i.starred || (i.category || 'other') !== catKey);
+                                    handleReorder([...others, ...newOrder]);
+                                  }}
+                                  style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
+                                >
+                                  {catItems.map((item) => (
+                                    <SwipeableItem
+                                      key={item.id}
+                                      item={item}
+                                      onPurchase={purchaseItem}
+                                      onDelete={deleteItem}
+                                      onChangeCategory={(i) => setSelectedItemForCategory(i)}
+                                      onUpdateQuantity={updateQuantity}
+                                      onToggleStar={toggleStar}
+                                    />
+                                  ))}
+                                </Reorder.Group>
+                              </div>
+                            );
+                          })}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -1203,6 +1382,57 @@ function App() {
               >
                 抽出して一括追加
               </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Share Confirm Bottom Sheet */}
+      <AnimatePresence>
+        {showShareConfirm && (
+          <>
+            <motion.div
+              key="share-confirm-overlay"
+              variants={overlayVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="drawer-overlay"
+              onClick={() => setShowShareConfirm(false)}
+            />
+            <motion.div
+              key="share-confirm-sheet"
+              variants={bottomSheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={drawerTransition}
+              className="drawer-fixed-bottom"
+              style={{ top: 'auto', padding: '24px' }}
+            >
+              <h3 style={{ margin: '0 0 12px 0' }}>リストを履歴に移動しますか？</h3>
+              <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                全アイテムを本日の履歴に追加してリストをクリアします。
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  onClick={handleMoveToHistory}
+                  className="add-button"
+                  style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem' }}
+                >
+                  履歴に移動してリストをクリア
+                </button>
+                <button
+                  onClick={() => setShowShareConfirm(false)}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem',
+                    background: 'var(--bg)', border: '1px solid var(--border)',
+                    color: 'var(--text-main)', cursor: 'pointer'
+                  }}
+                >
+                  このまま残す
+                </button>
+              </div>
             </motion.div>
           </>
         )}
