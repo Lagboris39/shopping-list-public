@@ -95,9 +95,9 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
   const spring = { type: 'spring', stiffness: 500, damping: 40 };
 
   const handleDragEnd = (event, info) => {
-    if (info.offset.x < -60) {
+    if (info.offset.x < -48) {
       setIsRevealed(true);
-      springAnimate(x, -70, spring);
+      springAnimate(x, -60, spring);
     } else {
       setIsRevealed(false);
       springAnimate(x, 0, spring);
@@ -146,26 +146,37 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         drag="x"
         dragListener={false}
         dragControls={swipeDragControls}
-        dragConstraints={{ left: -70, right: 0 }}
+        dragConstraints={{ left: -60, right: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
         onPointerDown={handleSwipePointerDown}
         className="item-card"
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
       >
-        {/* 左: 1行コンテンツ */}
-        <div className="item-main-area">
+        {/* 左: 1行コンテンツ（長押しでカテゴリ変更） */}
+        <div
+          className="item-main-area"
+          onPointerDown={(e) => {
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const timer = setTimeout(() => {
+              document.activeElement?.blur();
+              onChangeCategory(item);
+            }, 600);
+            const onMove = (me) => {
+              if (Math.hypot(me.clientX - startX, me.clientY - startY) > 8) {
+                clearTimeout(timer);
+                window.removeEventListener('pointermove', onMove);
+              }
+            };
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', () => {
+              clearTimeout(timer);
+              window.removeEventListener('pointermove', onMove);
+            }, { once: true });
+          }}
+        >
           <div className="item-row-single">
-            {/* 星ボタン（左端） */}
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
-              className="star-btn"
-              style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
-              title={item.starred ? '優先を解除' : '優先にする'}
-            >
-              <Star size={20} fill={item.starred ? '#f59e0b' : 'none'} />
-            </button>
             <div
               className="drag-handle"
               onPointerDown={(e) => {
@@ -178,34 +189,16 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
             >
               <GripVertical size={18} />
             </div>
-            {/* カテゴリアイコン（長押しでカテゴリ変更） */}
-            <div
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const timer = setTimeout(() => {
-                  document.activeElement?.blur();
-                  onChangeCategory(item);
-                }, 500);
-                const cancel = () => clearTimeout(timer);
-                const onMove = (me) => {
-                  if (Math.hypot(me.clientX - startX, me.clientY - startY) > 8) {
-                    cancel();
-                    window.removeEventListener('pointermove', onMove);
-                  }
-                };
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', () => {
-                  cancel();
-                  window.removeEventListener('pointermove', onMove);
-                }, { once: true });
-              }}
-              className="category-icon-display"
-              title="長押しでカテゴリ変更"
+            {/* 星ボタン（ハンドル右隣） */}
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
+              className="star-btn"
+              style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
+              title={item.starred ? '優先を解除' : '優先にする'}
             >
-              <span>{categoryIcons[item.category || 'other']}</span>
-            </div>
+              <Star size={20} fill={item.starred ? '#f59e0b' : 'none'} />
+            </button>
             <span className="item-text">{item.name}{emoji && <span className="item-emoji">{emoji}</span>}</span>
           </div>
         </div>
