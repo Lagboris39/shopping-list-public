@@ -156,6 +156,16 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         {/* 左: 1行コンテンツ */}
         <div className="item-main-area">
           <div className="item-row-single">
+            {/* 星ボタン（左端） */}
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
+              className="star-btn"
+              style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
+              title={item.starred ? '優先を解除' : '優先にする'}
+            >
+              <Star size={20} fill={item.starred ? '#f59e0b' : 'none'} />
+            </button>
             <div
               className="drag-handle"
               onPointerDown={(e) => {
@@ -168,32 +178,37 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
             >
               <GripVertical size={18} />
             </div>
-            <button
-              onClick={(e) => {
+            {/* カテゴリアイコン（長押しでカテゴリ変更） */}
+            <div
+              onPointerDown={(e) => {
                 e.stopPropagation();
-                document.activeElement?.blur();
-                onChangeCategory(item);
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const timer = setTimeout(() => {
+                  document.activeElement?.blur();
+                  onChangeCategory(item);
+                }, 500);
+                const cancel = () => clearTimeout(timer);
+                const onMove = (me) => {
+                  if (Math.hypot(me.clientX - startX, me.clientY - startY) > 8) {
+                    cancel();
+                    window.removeEventListener('pointermove', onMove);
+                  }
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', () => {
+                  cancel();
+                  window.removeEventListener('pointermove', onMove);
+                }, { once: true });
               }}
-              className="category-select-btn item-cat-btn"
-              title="タップしてカテゴリ変更"
+              className="category-icon-display"
+              title="長押しでカテゴリ変更"
             >
               <span>{categoryIcons[item.category || 'other']}</span>
-              <span className="category-arrow">▼</span>
-            </button>
+            </div>
             <span className="item-text">{item.name}{emoji && <span className="item-emoji">{emoji}</span>}</span>
           </div>
         </div>
-
-        {/* 星ボタン */}
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
-          className="star-btn"
-          style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
-          title={item.starred ? '優先を解除' : '優先にする'}
-        >
-          <Star size={15} fill={item.starred ? '#f59e0b' : 'none'} />
-        </button>
 
         {/* 縦ステッパー */}
         <div className="qty-vertical">
@@ -259,9 +274,7 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
     }, { once: true });
   };
 
-  const itemCategory = item.category ?? 'other';
-  const catColor = categoryColors[itemCategory] || categoryColors.other;
-  const catIcon = categoryIcons[itemCategory] || categoryIcons.other;
+  const historyEmoji = getItemEmoji(item.name);
 
   return (
     <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden' }}>
@@ -290,14 +303,9 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
         className="history-item-card"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-          <span
-            className="history-category-badge"
-            style={{ backgroundColor: catColor }}
-            title={item.category}
-          >
-            {catIcon}
+          <span className="history-item-text">
+            {item.name}{historyEmoji && <span className="item-emoji">{historyEmoji}</span>}
           </span>
-          <span className="history-item-text">{item.name}</span>
         </div>
         {isAdded ? (
           <button disabled className="history-btn added">
@@ -554,11 +562,10 @@ function App() {
 
   const formatShareText = (itemsList) => {
     const lines = itemsList.map(item => {
-      const icon = categoryIcons[item.category || 'other'] || '🛒';
       const qty = (item.quantity || 1) > 1 ? ` ×${item.quantity}` : '';
-      return `${icon} ${item.name}${qty}`;
+      return `${item.name}${qty}`;
     });
-    return `【買い物リスト】\n${lines.join('\n')}`;
+    return lines.join('\n');
   };
 
   const handleShare = async () => {
@@ -655,6 +662,19 @@ function App() {
 
     for (let word of rawWords) {
       if (!word.trim()) continue;
+
+      // 【...】形式のヘッダー行をスキップ
+      if (/^【.*】$/.test(word)) continue;
+
+      // 日本語・英数字を含まないトークン（絵文字のみ）をスキップ
+      if (!/[一-龯ぁ-んァ-ンa-zA-Z0-9０-９]/.test(word)) continue;
+
+      // ×N / xN 形式の数量を現在のアイテムに適用
+      const qtyMatchX = word.match(/^[×x]([0-9０-９]+)$/);
+      if (qtyMatchX && currentItem) {
+        currentItem.quantity = parseInt(qtyMatchX[1].replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)));
+        continue;
+      }
 
       const qtyMatch = word.match(/^([0-9０-９]+)(個|パック|本|箱|袋|枚)?$/);
       if (qtyMatch && currentItem) {
@@ -1038,7 +1058,7 @@ function App() {
                       padding: '12px', borderRadius: '8px', cursor: 'pointer',
                       backgroundColor: categoryColors[key] || categoryColors.other,
                       border: (selectedItemForCategory.category || 'other') === key ? '2px solid var(--theme-color)' : '1px solid rgba(0,0,0,0.1)',
-                      fontWeight: 'bold', textAlign: 'center', color: 'rgba(0,0,0,0.7)',
+                      fontWeight: 'bold', textAlign: 'center', color: 'var(--text-main)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                     }}
                   >
@@ -1240,7 +1260,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="list-container" style={{ zoom: listZoom }}>
+            <div className="list-container" style={{ zoom: listZoom, paddingBottom: '90px' }}>
               {items.length === 0 ? (
                 <div className="empty-state">
                   <ShoppingBag size={48} className="empty-icon" />

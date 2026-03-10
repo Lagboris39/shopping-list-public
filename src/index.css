@@ -43,24 +43,17 @@ body[data-theme='dark'] {
     --cat-snack-bg: #831843;
 }
 
-body[data-theme='dark'] .category-select-btn {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.item-cat-btn {
+.category-icon-display {
     display: flex;
     align-items: center;
-    gap: 2px;
+    justify-content: center;
     padding: 4px 5px;
     border-radius: 6px;
-    background-color: rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.1);
-    cursor: pointer;
     flex-shrink: 0;
     font-size: 16px;
-    transition: background-color 0.2s;
+    cursor: pointer;
     touch-action: manipulation;
+    user-select: none;
 }
 
 body[data-theme='dark'] .history-category-badge {
@@ -310,11 +303,6 @@ input[type="text"]:focus {
     line-height: 1.2;
 }
 
-.category-arrow {
-    font-size: 8px;
-    color: rgba(0,0,0,0.4);
-    margin-top: 2px;
-}
 
 .item-content {
     display: flex;
@@ -1132,8 +1120,8 @@ input[type="text"]:focus {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px 5px;
-    border-radius: 6px;
+    padding: 6px 7px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
