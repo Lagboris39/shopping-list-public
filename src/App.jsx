@@ -86,7 +86,7 @@ const getItemEmoji = (name) => {
   return null;
 };
 
-const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar }) => {
+const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar, showStarFeature = true }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const x = useMotionValue(0);
   const dragControls = useDragControls();
@@ -157,6 +157,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         <div
           className="item-main-area"
           onPointerDown={(e) => {
+            e.preventDefault();
             const startX = e.clientX;
             const startY = e.clientY;
             const timer = setTimeout(() => {
@@ -190,15 +191,17 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
               <GripVertical size={18} />
             </div>
             {/* 星ボタン（ハンドル右隣） */}
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
-              className="star-btn"
-              style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
-              title={item.starred ? '優先を解除' : '優先にする'}
-            >
-              <Star size={20} fill={item.starred ? '#f59e0b' : 'none'} />
-            </button>
+            {showStarFeature && (
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onToggleStar(item.id); }}
+                className="star-btn"
+                style={{ color: item.starred ? '#f59e0b' : 'var(--text-sub, #bbb)' }}
+                title={item.starred ? '優先を解除' : '優先にする'}
+              >
+                <Star size={20} fill={item.starred ? '#f59e0b' : 'none'} />
+              </button>
+            )}
             <span className="item-text">{item.name}{emoji && <span className="item-emoji">{emoji}</span>}</span>
           </div>
         </div>
@@ -345,6 +348,12 @@ function App() {
   const [showPriceCalc, setShowPriceCalc] = useState(false);
   const [calcA, setCalcA] = useState({ price: '', amount: '' });
   const [calcB, setCalcB] = useState({ price: '', amount: '' });
+  const [showStarFeature, setShowStarFeature] = useState(
+    () => localStorage.getItem('showStarFeature') !== 'false'
+  );
+  const [showCategoryFeature, setShowCategoryFeature] = useState(
+    () => localStorage.getItem('showCategoryFeature') !== 'false'
+  );
   const [listZoom, setListZoom] = useState(
     () => parseFloat(localStorage.getItem('listZoom') || '1')
   );
@@ -355,6 +364,7 @@ function App() {
 
   const reorderSaveTimeoutRef = useRef(null);
   const categoryOrderSaveTimeoutRef = useRef(null);
+  const importModalRef = useRef(null);
 
 
   const dismissTutorial = () => {
@@ -393,6 +403,19 @@ function App() {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!showImport || !window.visualViewport) return;
+    const adjust = () => {
+      const keyboardH = window.innerHeight - window.visualViewport.height;
+      if (importModalRef.current) importModalRef.current.style.bottom = keyboardH + 'px';
+    };
+    window.visualViewport.addEventListener('resize', adjust);
+    return () => {
+      window.visualViewport.removeEventListener('resize', adjust);
+      if (importModalRef.current) importModalRef.current.style.bottom = '';
+    };
+  }, [showImport]);
 
   const showError = (msg) => {
     setErrorMsg(msg);
@@ -554,11 +577,13 @@ function App() {
   };
 
   const formatShareText = (itemsList) => {
-    const lines = itemsList.map(item => {
+    const starred = itemsList.filter(i => i.starred);
+    const nonStarred = itemsList.filter(i => !i.starred);
+    const toLine = (item) => {
       const qty = (item.quantity || 1) > 1 ? ` ×${item.quantity}` : '';
-      return `${item.name}${qty}`;
-    });
-    return lines.join('\n');
+      return `${item.starred ? '★ ' : ''}${item.name}${qty}`;
+    };
+    return [...starred, ...nonStarred].map(toLine).join('\n');
   };
 
   const handleShare = async () => {
@@ -823,6 +848,38 @@ function App() {
                     <GripVertical size={18} />
                     カテゴリの並び替え
                   </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Star size={16} /> 優先（星）マーク機能
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={showStarFeature}
+                        onChange={(e) => {
+                          const v = e.target.checked;
+                          setShowStarFeature(v);
+                          localStorage.setItem('showStarFeature', String(v));
+                        }}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      />
+                    </label>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ListTodo size={16} /> カテゴリ分類機能
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={showCategoryFeature}
+                        onChange={(e) => {
+                          const v = e.target.checked;
+                          setShowCategoryFeature(v);
+                          localStorage.setItem('showCategoryFeature', String(v));
+                        }}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="settings-section">
@@ -1262,13 +1319,31 @@ function App() {
                 </div>
               ) : (
                 <>
-                  {/* 星付きアイテム（最上部固定） */}
                   {(() => {
-                    const starredItems = items.filter(i => i.starred);
-                    const nonStarredItems = items.filter(i => !i.starred);
+                    const starredItems = showStarFeature
+                      ? items.filter(i => i.starred).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                      : [];
+                    const nonStarredItems = showStarFeature
+                      ? items.filter(i => !i.starred)
+                      : items;
+
+                    const renderItem = (item) => (
+                      <SwipeableItem
+                        key={item.id}
+                        item={item}
+                        onPurchase={purchaseItem}
+                        onDelete={deleteItem}
+                        onChangeCategory={(i) => setSelectedItemForCategory(i)}
+                        onUpdateQuantity={updateQuantity}
+                        onToggleStar={toggleStar}
+                        showStarFeature={showStarFeature}
+                      />
+                    );
+
                     return (
                       <>
-                        {starredItems.length > 0 && (
+                        {/* 星付きアイテム（最上部固定） */}
+                        {showStarFeature && starredItems.length > 0 && (
                           <div className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                             <div className="category-sidebar" style={{
                               width: '40px', flexShrink: 0,
@@ -1287,60 +1362,58 @@ function App() {
                               }}
                               style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
                             >
-                              {starredItems.map((item) => (
-                                <SwipeableItem
-                                  key={item.id}
-                                  item={item}
-                                  onPurchase={purchaseItem}
-                                  onDelete={deleteItem}
-                                  onChangeCategory={(i) => setSelectedItemForCategory(i)}
-                                  onUpdateQuantity={updateQuantity}
-                                  onToggleStar={toggleStar}
-                                />
-                              ))}
+                              {starredItems.map(renderItem)}
                             </Reorder.Group>
                           </div>
                         )}
-                        {/* カテゴリグループ（非星アイテム） */}
-                        {categoryOrder
-                          .filter(catKey => nonStarredItems.some(i => (i.category || 'other') === catKey))
-                          .map(catKey => {
-                            const catItems = nonStarredItems.filter(i => (i.category || 'other') === catKey);
-                            return (
-                              <div key={catKey} className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                <div className="category-sidebar" style={{
-                                  width: '40px', flexShrink: 0,
-                                  backgroundColor: categoryColors[catKey] || categoryColors.other,
-                                  borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
-                                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
-                                }}>
-                                  {categoryIcons[catKey] || '🏷️'}
+
+                        {/* カテゴリ分類OFF: 登録順フラット表示 */}
+                        {!showCategoryFeature ? (
+                          <Reorder.Group
+                            axis="y"
+                            values={nonStarredItems}
+                            onReorder={(newOrder) => {
+                              handleReorder([...starredItems, ...newOrder]);
+                            }}
+                            style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}
+                          >
+                            {nonStarredItems
+                              .slice()
+                              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                              .map(renderItem)}
+                          </Reorder.Group>
+                        ) : (
+                          /* カテゴリグループ（非星アイテム） */
+                          categoryOrder
+                            .filter(catKey => nonStarredItems.some(i => (i.category || 'other') === catKey))
+                            .map(catKey => {
+                              const catItems = nonStarredItems.filter(i => (i.category || 'other') === catKey);
+                              return (
+                                <div key={catKey} className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                  <div className="category-sidebar" style={{
+                                    width: '40px', flexShrink: 0,
+                                    backgroundColor: categoryColors[catKey] || categoryColors.other,
+                                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
+                                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+                                  }}>
+                                    {categoryIcons[catKey] || '🏷️'}
+                                  </div>
+                                  <Reorder.Group
+                                    axis="y"
+                                    values={catItems}
+                                    onReorder={(newOrder) => {
+                                      const others = items.filter(i => (showStarFeature && i.starred) || (i.category || 'other') !== catKey);
+                                      handleReorder([...others, ...newOrder]);
+                                    }}
+                                    style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
+                                  >
+                                    {catItems.map(renderItem)}
+                                  </Reorder.Group>
                                 </div>
-                                <Reorder.Group
-                                  axis="y"
-                                  values={catItems}
-                                  onReorder={(newOrder) => {
-                                    const others = items.filter(i => i.starred || (i.category || 'other') !== catKey);
-                                    handleReorder([...others, ...newOrder]);
-                                  }}
-                                  style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
-                                >
-                                  {catItems.map((item) => (
-                                    <SwipeableItem
-                                      key={item.id}
-                                      item={item}
-                                      onPurchase={purchaseItem}
-                                      onDelete={deleteItem}
-                                      onChangeCategory={(i) => setSelectedItemForCategory(i)}
-                                      onUpdateQuantity={updateQuantity}
-                                      onToggleStar={toggleStar}
-                                    />
-                                  ))}
-                                </Reorder.Group>
-                              </div>
-                            );
-                          })}
+                              );
+                            })
+                        )}
                       </>
                     );
                   })()}
@@ -1365,6 +1438,7 @@ function App() {
             />
             <motion.div
               key="import-modal"
+              ref={importModalRef}
               variants={bottomSheetVariants}
               initial="hidden"
               animate="visible"
@@ -1400,7 +1474,7 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Share Confirm Bottom Sheet */}
+      {/* Share Confirm Center Dialog */}
       <AnimatePresence>
         {showShareConfirm && (
           <>
@@ -1414,16 +1488,20 @@ function App() {
               onClick={() => setShowShareConfirm(false)}
             />
             <motion.div
-              key="share-confirm-sheet"
-              variants={bottomSheetVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={drawerTransition}
-              className="drawer-fixed-bottom"
-              style={{ top: 'auto', padding: '24px' }}
+              key="share-confirm-dialog"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              style={{
+                position: 'fixed', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1000, width: 'min(90vw, 360px)',
+                background: 'var(--card-bg)', borderRadius: '20px',
+                boxShadow: 'var(--shadow-lg)', padding: '28px 24px',
+              }}
             >
-              <h3 style={{ margin: '0 0 12px 0' }}>リストを履歴に移動しますか？</h3>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>リストを履歴に移動しますか？</h3>
               <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 全アイテムを本日の履歴に追加してリストをクリアします。
               </p>

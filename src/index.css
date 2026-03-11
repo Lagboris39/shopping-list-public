@@ -241,6 +241,13 @@ input[type="text"]:focus {
     display: flex;
     align-items: center;
     min-width: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 0.15s ease;
+}
+
+.item-main-area:active {
+    transform: scale(0.97);
 }
 
 /* 1行: drag + category + name */
