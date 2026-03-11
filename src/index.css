@@ -376,6 +376,12 @@ input[type="text"]:focus {
 /* Enhanced Item Card */
 .draggable-item-container {
     list-style: none;
+    transition: transform 0.15s ease;
+    transform-origin: center;
+}
+
+.draggable-item-container:active {
+    transform: scale(0.97);
 }
 
 .drag-handle {

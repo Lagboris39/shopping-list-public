@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2 } from 'lucide-react';
+import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls, animate as springAnimate } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
@@ -175,7 +175,6 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         onDragEnd={handleDragEnd}
         onPointerDown={handleSwipePointerDown}
         className="item-card"
-        whileTap={{ scale: 0.97 }}
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
       >
         {/* 左: 1行コンテンツ（長押しでカテゴリ変更） */}
@@ -389,6 +388,7 @@ function App() {
 
   const reorderSaveTimeoutRef = useRef(null);
   const categoryOrderSaveTimeoutRef = useRef(null);
+  const importContainerRef = useRef(null);
 
 
   const dismissTutorial = () => {
@@ -428,6 +428,21 @@ function App() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (!showImport || !window.visualViewport) return;
+    const adjust = () => {
+      if (!importContainerRef.current) return;
+      importContainerRef.current.style.height = window.visualViewport.height + 'px';
+      importContainerRef.current.style.top = window.visualViewport.offsetTop + 'px';
+    };
+    adjust();
+    window.visualViewport.addEventListener('resize', adjust);
+    window.visualViewport.addEventListener('scroll', adjust);
+    return () => {
+      window.visualViewport.removeEventListener('resize', adjust);
+      window.visualViewport.removeEventListener('scroll', adjust);
+    };
+  }, [showImport]);
 
   const showError = (msg) => {
     setErrorMsg(msg);
@@ -866,10 +881,21 @@ function App() {
 
                 <div className="settings-section">
                   <h3 className="section-title">カスタマイズ</h3>
-                  <button onClick={() => { setIsMenuOpen(false); document.activeElement?.blur(); setIsCategoryOrderMode(true); }} style={{ width: '100%', marginBottom: '16px', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <GripVertical size={18} />
-                    カテゴリの並び替え
-                  </button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                      <GripVertical size={16} /> カテゴリの並び替え
+                    </span>
+                    <button
+                      onClick={() => { setIsMenuOpen(false); document.activeElement?.blur(); setIsCategoryOrderMode(true); }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--text-secondary)', padding: '2px',
+                        display: 'flex', alignItems: 'center',
+                      }}
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
@@ -1439,12 +1465,16 @@ function App() {
         {showImport && (
           <motion.div
             key="import-modal"
+            ref={importContainerRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             style={{
-              position: 'fixed', inset: 0, zIndex: 1011,
+              position: 'fixed',
+              top: 0, left: 0, right: 0,
+              height: '100dvh',
+              zIndex: 1011,
               background: 'var(--bg)',
               display: 'flex', flexDirection: 'column',
             }}
@@ -1483,7 +1513,7 @@ function App() {
             />
 
             {/* ボタン（常に最下部） */}
-            <div style={{ flexShrink: 0, padding: '12px 24px 32px' }}>
+            <div style={{ flexShrink: 0, padding: '12px 24px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
               <button
                 onClick={handleImport}
                 className="add-button"
