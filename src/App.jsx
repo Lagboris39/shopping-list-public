@@ -1487,16 +1487,20 @@ function App() {
               className="drawer-overlay"
               onClick={() => setShowShareConfirm(false)}
             />
+            <div
+              key="share-confirm-dialog-wrapper"
+              style={{
+                position: 'fixed', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1000, width: 'min(90vw, 360px)',
+              }}
+            >
             <motion.div
-              key="share-confirm-dialog"
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               style={{
-                position: 'fixed', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                zIndex: 1000, width: 'min(90vw, 360px)',
                 background: 'var(--card-bg)', borderRadius: '20px',
                 boxShadow: 'var(--shadow-lg)', padding: '28px 24px',
               }}
@@ -1525,6 +1529,7 @@ function App() {
                 </button>
               </div>
             </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
