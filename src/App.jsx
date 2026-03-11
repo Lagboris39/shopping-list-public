@@ -364,7 +364,6 @@ function App() {
 
   const reorderSaveTimeoutRef = useRef(null);
   const categoryOrderSaveTimeoutRef = useRef(null);
-  const importModalRef = useRef(null);
 
 
   const dismissTutorial = () => {
@@ -404,18 +403,6 @@ function App() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (!showImport || !window.visualViewport) return;
-    const adjust = () => {
-      const keyboardH = window.innerHeight - window.visualViewport.height;
-      if (importModalRef.current) importModalRef.current.style.bottom = keyboardH + 'px';
-    };
-    window.visualViewport.addEventListener('resize', adjust);
-    return () => {
-      window.visualViewport.removeEventListener('resize', adjust);
-      if (importModalRef.current) importModalRef.current.style.bottom = '';
-    };
-  }, [showImport]);
 
   const showError = (msg) => {
     setErrorMsg(msg);
@@ -1424,44 +1411,55 @@ function App() {
         </motion.div>
       </main>
 
-      {/* Import Text Modal */}
+      {/* Import Text Modal（全画面フレックス） */}
       <AnimatePresence>
         {showImport && (
-          <>
-            <motion.div
-              key="import-overlay"
-              variants={overlayVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="drawer-overlay" onClick={() => setShowImport(false)}
+          <motion.div
+            key="import-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1011,
+              background: 'var(--bg)',
+              display: 'flex', flexDirection: 'column',
+            }}
+          >
+            {/* ヘッダー */}
+            <div style={{
+              flexShrink: 0,
+              padding: '20px 24px 12px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <h3 style={{ margin: 0 }}>テキストから一括追加</h3>
+              <button
+                onClick={() => setShowImport(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', padding: '4px' }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* textarea（残り空間を全て占有） */}
+            <textarea
+              placeholder="LINEやメモ帳からテキストを貼り付けできます。&#10;(例: 牛乳 2、卵)"
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              style={{
+                flex: 1, margin: '16px 24px 0',
+                padding: '14px', borderRadius: '12px',
+                border: '1px solid var(--border)',
+                resize: 'none',
+                backgroundColor: 'var(--bg)', color: 'var(--text-main)',
+                fontSize: '1rem', outline: 'none',
+                minHeight: 0,
+              }}
             />
-            <motion.div
-              key="import-modal"
-              ref={importModalRef}
-              variants={bottomSheetVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={drawerTransition}
-              className="drawer-fixed-bottom"
-              style={{ top: 'auto', padding: '24px' }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0 }}>テキストから一括追加</h3>
-                <button onClick={() => setShowImport(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={24} /></button>
-              </div>
-              <textarea
-                placeholder="LINEやメモ帳からテキストを貼り付けできます。(例: 牛乳 2、卵)"
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                rows={6}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--border)',
-                  resize: 'none', backgroundColor: 'var(--bg)', color: 'var(--text-main)',
-                  marginBottom: '16px', fontSize: '1rem', outline: 'none'
-                }}
-              />
+
+            {/* ボタン（常に最下部） */}
+            <div style={{ flexShrink: 0, padding: '12px 24px 32px' }}>
               <button
                 onClick={handleImport}
                 className="add-button"
@@ -1469,8 +1467,8 @@ function App() {
               >
                 抽出して一括追加
               </button>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
