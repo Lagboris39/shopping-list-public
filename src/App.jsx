@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, PawPrint, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2 } from 'lucide-react';
+import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls, animate as springAnimate } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
@@ -79,6 +79,30 @@ const emojiDict = {
   '歯ブラシ': '🪥', '歯磨き粉': '🪥',
 };
 
+const ToggleSwitch = ({ value, onChange }) => (
+  <button
+    role="switch"
+    aria-checked={value}
+    onClick={() => onChange(!value)}
+    style={{
+      width: '44px', height: '26px', borderRadius: '13px',
+      background: value ? 'var(--primary)' : 'var(--border)',
+      border: 'none', position: 'relative',
+      cursor: 'pointer', flexShrink: 0,
+      transition: 'background 0.2s',
+      padding: 0,
+    }}
+  >
+    <span style={{
+      position: 'absolute', width: '20px', height: '20px',
+      borderRadius: '50%', background: 'white',
+      top: '3px', left: value ? '21px' : '3px',
+      transition: 'left 0.2s',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    }} />
+  </button>
+);
+
 const getItemEmoji = (name) => {
   for (const [keyword, emoji] of Object.entries(emojiDict)) {
     if (name.includes(keyword)) return emoji;
@@ -151,6 +175,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         onDragEnd={handleDragEnd}
         onPointerDown={handleSwipePointerDown}
         className="item-card"
+        whileTap={{ scale: 0.97 }}
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
       >
         {/* 左: 1行コンテンツ（長押しでカテゴリ変更） */}
@@ -762,14 +787,24 @@ function App() {
               <h1 className="title">買い物行くドン！</h1>
             </div>
           </div>
-          <div className="header-right" style={{ display: 'flex', gap: '12px' }}>
+          <div className="header-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             {items.length > 0 && (
-              <button className="menu-toggle" onClick={handleShare} title="リストを共有">
-                <Share2 size={22} />
+              <button
+                onClick={handleShare}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', borderRadius: '999px',
+                  background: 'var(--card-bg)', border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)', cursor: 'pointer',
+                  fontSize: '0.85rem', fontWeight: '500',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Share2 size={16} /> リストを共有
               </button>
             )}
             <button className="menu-toggle" onClick={() => { document.activeElement?.blur(); setIsMenuOpen(true); }}>
-              <PawPrint size={22} />
+              <Settings size={22} />
             </button>
           </div>
         </div>
@@ -835,37 +870,25 @@ function App() {
                     <GripVertical size={18} />
                     カテゴリの並び替え
                   </button>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
                         <Star size={16} /> 優先（星）マーク機能
                       </span>
-                      <input
-                        type="checkbox"
-                        checked={showStarFeature}
-                        onChange={(e) => {
-                          const v = e.target.checked;
-                          setShowStarFeature(v);
-                          localStorage.setItem('showStarFeature', String(v));
-                        }}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      <ToggleSwitch
+                        value={showStarFeature}
+                        onChange={(v) => { setShowStarFeature(v); localStorage.setItem('showStarFeature', String(v)); }}
                       />
-                    </label>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
                         <ListTodo size={16} /> カテゴリ分類機能
                       </span>
-                      <input
-                        type="checkbox"
-                        checked={showCategoryFeature}
-                        onChange={(e) => {
-                          const v = e.target.checked;
-                          setShowCategoryFeature(v);
-                          localStorage.setItem('showCategoryFeature', String(v));
-                        }}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      <ToggleSwitch
+                        value={showCategoryFeature}
+                        onChange={(v) => { setShowCategoryFeature(v); localStorage.setItem('showCategoryFeature', String(v)); }}
                       />
-                    </label>
+                    </div>
                   </div>
                 </div>
 
@@ -1444,6 +1467,7 @@ function App() {
 
             {/* textarea（残り空間を全て占有） */}
             <textarea
+              autoFocus
               placeholder="LINEやメモ帳からテキストを貼り付けできます。&#10;(例: 牛乳 2、卵)"
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
