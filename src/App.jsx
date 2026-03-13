@@ -112,9 +112,11 @@ const getItemEmoji = (name) => {
 
 const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar, showStarFeature = true }) => {
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isPressing, setIsPressing] = useState(false);
   const x = useMotionValue(0);
   const dragControls = useDragControls();
   const swipeDragControls = useDragControls();
+  const handleRef = useRef(null);
 
   const spring = { type: 'spring', stiffness: 500, damping: 40 };
 
@@ -157,14 +159,12 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       className="draggable-item-container"
       dragListener={false}
       dragControls={dragControls}
-      style={{ position: 'relative', borderRadius: 'var(--radius)' }}
-      whileTap={{
-        filter: 'brightness(0.95)',
-        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)'
-      }}
-      animate={{
-        filter: 'brightness(1)',
-        boxShadow: 'inset 0 0px 0px rgba(0,0,0,0)'
+      style={{
+        position: 'relative',
+        borderRadius: 'var(--radius)',
+        filter: isPressing ? 'brightness(0.95)' : 'brightness(1)',
+        boxShadow: isPressing ? 'inset 0 2px 6px rgba(0,0,0,0.15)' : 'none',
+        transition: 'filter 0.2s, box-shadow 0.2s'
       }}
     >
       <div className="swipe-bg-danger">
@@ -211,18 +211,45 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         >
           <div className="item-row-single">
             <div
+              ref={handleRef}
               className="drag-handle"
               onPointerDown={(e) => {
                 e.stopPropagation();
+                setIsPressing(true);
                 let latestEvent = e;
                 const onMove = (me) => { latestEvent = me; };
                 window.addEventListener('pointermove', onMove);
+
                 const timer = setTimeout(() => {
                   window.removeEventListener('pointermove', onMove);
-                  dragControls.start(latestEvent);
+
+                  // ドラッグ開始時のズレ（吸い付き）を修正
+                  // ハンドルの中心座標を取得して、そこからドラッグが始まったように見せかける
+                  if (handleRef.current) {
+                    const rect = handleRef.current.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+
+                    // 合成イベントを作成。
+                    // clientX/Yは現在の指の位置(latestEvent)にするが、
+                    // framer-motionに渡す直前の「アンカー」として機能させる
+                    const syntheticEvent = new PointerEvent('pointerdown', {
+                      clientX: centerX,
+                      clientY: centerY,
+                      pointerId: latestEvent.pointerId,
+                      bubbles: true,
+                      cancelable: true
+                    });
+
+                    dragControls.start(syntheticEvent);
+                  } else {
+                    dragControls.start(latestEvent);
+                  }
                 }, 400);
+
                 const cancel = () => {
                   clearTimeout(timer);
+                  setIsPressing(false);
                   window.removeEventListener('pointermove', onMove);
                 };
                 window.addEventListener('pointerup', cancel, { once: true });
