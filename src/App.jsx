@@ -159,6 +159,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       className="draggable-item-container"
       dragListener={false}
       dragControls={dragControls}
+      onDragEnd={() => setIsPressing(false)}
       style={{
         position: 'relative',
         borderRadius: 'var(--radius)',
@@ -222,29 +223,8 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
 
                 const timer = setTimeout(() => {
                   window.removeEventListener('pointermove', onMove);
-
-                  // ドラッグ開始時のズレ（吸い付き）を修正
-                  // ハンドルの中心座標を取得して、そこからドラッグが始まったように見せかける
-                  if (handleRef.current) {
-                    const rect = handleRef.current.getBoundingClientRect();
-                    const centerX = rect.left + rect.width / 2;
-                    const centerY = rect.top + rect.height / 2;
-
-                    // 合成イベントを作成。
-                    // clientX/Yは現在の指の位置(latestEvent)にするが、
-                    // framer-motionに渡す直前の「アンカー」として機能させる
-                    const syntheticEvent = new PointerEvent('pointerdown', {
-                      clientX: centerX,
-                      clientY: centerY,
-                      pointerId: latestEvent.pointerId,
-                      bubbles: true,
-                      cancelable: true
-                    });
-
-                    dragControls.start(syntheticEvent);
-                  } else {
-                    dragControls.start(latestEvent);
-                  }
+                  // 現在の指の位置（latestEvent）でドラッグを開始
+                  dragControls.start(latestEvent);
                 }, 400);
 
                 const cancel = () => {
