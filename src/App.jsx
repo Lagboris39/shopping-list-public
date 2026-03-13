@@ -131,6 +131,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
   };
 
   const handleSwipePointerDown = (e) => {
+    setIsPressing(true);
     const startX = e.clientX;
     const startY = e.clientY;
     const saved = e;
@@ -143,10 +144,15 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         swipeDragControls.start(saved);
       }
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', () => {
+    const onUp = () => {
+      setIsPressing(false);
       window.removeEventListener('pointermove', onMove);
-    }, { once: true });
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   const catColor = item.category ? categoryColors[item.category] : categoryColors.other;
