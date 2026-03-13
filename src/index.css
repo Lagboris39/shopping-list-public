@@ -226,7 +226,7 @@ input[type="text"]:focus {
     display: flex;
     align-items: stretch;
     box-shadow: var(--shadow);
-    transition: box-shadow 0.2s;
+    transition: transform 0.1s, box-shadow 0.2s;
     border: 1px solid var(--border);
     overflow: hidden;
 }
@@ -376,6 +376,7 @@ input[type="text"]:focus {
 /* Enhanced Item Card */
 .draggable-item-container {
     list-style: none;
+    transition: transform 0.15s ease;
     transform-origin: center;
 }
 

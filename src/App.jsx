@@ -678,30 +678,10 @@ function App() {
   };
 
   const handleReorder = (newOrder) => {
-    // 変更がない場合はスキップ
-    const currentOrderIds = items.map(i => i.id);
-    const newOrderIds = newOrder.map(i => i.id);
-    if (JSON.stringify(currentOrderIds) === JSON.stringify(newOrderIds)) {
+    if (JSON.stringify(newOrder.map(i => i.id)) === JSON.stringify(items.map(i => i.id))) {
       return;
     }
-
-    // items全体を一度に更新するのではなく、
-    // newOrderに含まれるアイテムを、items全体の該当箇所にマッピングし直す必要がある。
-    // (newOrderは一部のカテゴリグループのアイテムのみである場合があるため)
-
-    // newOrder内のアイテムIDのセット
-    const reorderedIds = new Set(newOrderIds);
-
-    // items配列を走査し、reorderedIdsに含まれるものはnewOrderから順に取り出す
-    let reorderedPtr = 0;
-    const finalItems = items.map(item => {
-      if (reorderedIds.has(item.id)) {
-        return newOrder[reorderedPtr++];
-      }
-      return item;
-    });
-
-    const updatedItems = finalItems.map((item, index) => ({ ...item, order_index: index }));
+    const updatedItems = newOrder.map((item, index) => ({ ...item, order_index: index }));
     setItems(updatedItems);
 
     if (reorderSaveTimeoutRef.current) {
