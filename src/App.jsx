@@ -90,7 +90,7 @@ const ToggleSwitch = ({ value, onChange }) => (
       border: 'none', position: 'relative',
       cursor: 'pointer', flexShrink: 0,
       transition: 'background 0.2s',
-      padding: 0,
+      padding: 0, touchAction: 'manipulation',
     }}
   >
     <span style={{
@@ -158,6 +158,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       dragListener={false}
       dragControls={dragControls}
       style={{ position: 'relative', borderRadius: 'var(--radius)' }}
+      whileTap={{ scale: 0.97 }}
     >
       <div className="swipe-bg-danger">
         <button onClick={() => onDelete(item.id)} className="swipe-delete-btn">
@@ -206,8 +207,17 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
               className="drag-handle"
               onPointerDown={(e) => {
                 e.stopPropagation();
-                const timer = setTimeout(() => dragControls.start(e), 400);
-                const cancel = () => clearTimeout(timer);
+                let latestEvent = e;
+                const onMove = (me) => { latestEvent = me; };
+                window.addEventListener('pointermove', onMove);
+                const timer = setTimeout(() => {
+                  window.removeEventListener('pointermove', onMove);
+                  dragControls.start(latestEvent);
+                }, 400);
+                const cancel = () => {
+                  clearTimeout(timer);
+                  window.removeEventListener('pointermove', onMove);
+                };
                 window.addEventListener('pointerup', cancel, { once: true });
                 window.addEventListener('pointercancel', cancel, { once: true });
               }}

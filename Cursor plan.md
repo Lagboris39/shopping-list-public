@@ -7,6 +7,9 @@
 ## 実装済み（完了）
 
 ### バグ修正
+- [x] **トグルボタン連打誤作動の修正** — `ToggleSwitch` ボタンに `touchAction: 'manipulation'` を追加。モバイルブラウザの300ms待機が解消され、2つのトグルを素早く連打しても片方が2連打と誤認識されなくなった。
+- [x] **並び替えカードのズレ修正** — `drag-handle` の `onPointerDown` で `pointermove` を監視して最新座標を `latestEvent` に保持し、400ms後に `dragControls.start(latestEvent)` を呼ぶよう変更。古い座標でドラッグ開始していた問題を解消。
+- [x] **長押しアニメーションの復活** — `Reorder.Item` に `whileTap={{ scale: 0.97 }}` を追加。`item-main-area` の `e.preventDefault()` による CSS `:active` 不発を回避し、framer-motion 側でアニメーションを制御。
 - [x] Reorder中のIndexedDB連打を debounce（400ms）で修正 → UI停止解消
 - [x] pointercancel 未対応を修正（長押しタイマーのキャンセル漏れ）
 - [x] モーダル/ドロワーの exit アニメーション中にオーバーレイが pointer events をブロックし続けていた問題を修正（`pointerEvents: 'none'` を exit variants に追加）
