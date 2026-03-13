@@ -159,6 +159,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       dragControls={dragControls}
       style={{ position: 'relative', borderRadius: 'var(--radius)' }}
       whileTap={{ scale: 0.97 }}
+      whileDrag={{ scale: 1 }}
     >
       <div className="swipe-bg-danger">
         <button onClick={() => onDelete(item.id)} className="swipe-delete-btn">
