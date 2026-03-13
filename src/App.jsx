@@ -393,7 +393,7 @@ function App() {
   );
   const [showShareConfirm, setShowShareConfirm] = useState(false);
 
-  const zoomIn  = () => { const v = Math.min(1.2, Math.round((listZoom + 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
+  const zoomIn = () => { const v = Math.min(1.2, Math.round((listZoom + 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
   const zoomOut = () => { const v = Math.max(0.6, Math.round((listZoom - 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
 
   const reorderSaveTimeoutRef = useRef(null);
@@ -678,10 +678,30 @@ function App() {
   };
 
   const handleReorder = (newOrder) => {
-    if (JSON.stringify(newOrder.map(i => i.id)) === JSON.stringify(items.map(i => i.id))) {
+    // 変更がない場合はスキップ
+    const currentOrderIds = items.map(i => i.id);
+    const newOrderIds = newOrder.map(i => i.id);
+    if (JSON.stringify(currentOrderIds) === JSON.stringify(newOrderIds)) {
       return;
     }
-    const updatedItems = newOrder.map((item, index) => ({ ...item, order_index: index }));
+
+    // items全体を一度に更新するのではなく、
+    // newOrderに含まれるアイテムを、items全体の該当箇所にマッピングし直す必要がある。
+    // (newOrderは一部のカテゴリグループのアイテムのみである場合があるため)
+
+    // newOrder内のアイテムIDのセット
+    const reorderedIds = new Set(newOrderIds);
+
+    // items配列を走査し、reorderedIdsに含まれるものはnewOrderから順に取り出す
+    let reorderedPtr = 0;
+    const finalItems = items.map(item => {
+      if (reorderedIds.has(item.id)) {
+        return newOrder[reorderedPtr++];
+      }
+      return item;
+    });
+
+    const updatedItems = finalItems.map((item, index) => ({ ...item, order_index: index }));
     setItems(updatedItems);
 
     if (reorderSaveTimeoutRef.current) {
@@ -1557,40 +1577,40 @@ function App() {
                 zIndex: 1000, width: 'min(90vw, 360px)',
               }}
             >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              style={{
-                background: 'var(--card-bg)', borderRadius: '20px',
-                boxShadow: 'var(--shadow-lg)', padding: '28px 24px',
-              }}
-            >
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>リストを履歴に移動しますか？</h3>
-              <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                全アイテムを本日の履歴に追加してリストをクリアします。
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button
-                  onClick={handleMoveToHistory}
-                  className="add-button"
-                  style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem' }}
-                >
-                  履歴に移動してリストをクリア
-                </button>
-                <button
-                  onClick={() => setShowShareConfirm(false)}
-                  style={{
-                    width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem',
-                    background: 'var(--bg)', border: '1px solid var(--border)',
-                    color: 'var(--text-main)', cursor: 'pointer'
-                  }}
-                >
-                  このまま残す
-                </button>
-              </div>
-            </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.92 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{
+                  background: 'var(--card-bg)', borderRadius: '20px',
+                  boxShadow: 'var(--shadow-lg)', padding: '28px 24px',
+                }}
+              >
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>リストを履歴に移動しますか？</h3>
+                <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  全アイテムを本日の履歴に追加してリストをクリアします。
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    onClick={handleMoveToHistory}
+                    className="add-button"
+                    style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem' }}
+                  >
+                    履歴に移動してリストをクリア
+                  </button>
+                  <button
+                    onClick={() => setShowShareConfirm(false)}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem',
+                      background: 'var(--bg)', border: '1px solid var(--border)',
+                      color: 'var(--text-main)', cursor: 'pointer'
+                    }}
+                  >
+                    このまま残す
+                  </button>
+                </div>
+              </motion.div>
             </div>
           </>
         )}
