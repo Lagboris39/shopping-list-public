@@ -181,7 +181,10 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         dragControls={swipeDragControls}
         dragConstraints={{ left: -60, right: 0 }}
         dragElastic={0.05}
-        onDragEnd={handleDragEnd}
+        onDragEnd={(e, info) => {
+          setIsPressing(false);
+          handleDragEnd(e, info);
+        }}
         onPointerDown={handleSwipePointerDown}
         className="item-card"
         whileDrag={{ boxShadow: 'var(--shadow-lg)', scale: 1.02, zIndex: 10 }}
@@ -231,9 +234,11 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
                   clearTimeout(timer);
                   setIsPressing(false);
                   window.removeEventListener('pointermove', onMove);
+                  window.removeEventListener('pointerup', cancel);
+                  window.removeEventListener('pointercancel', cancel);
                 };
-                window.addEventListener('pointerup', cancel, { once: true });
-                window.addEventListener('pointercancel', cancel, { once: true });
+                window.addEventListener('pointerup', cancel);
+                window.addEventListener('pointercancel', cancel);
               }}
             >
               <GripVertical size={18} />
