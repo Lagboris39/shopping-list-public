@@ -162,6 +162,10 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
         filter: 'brightness(0.95)',
         boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)'
       }}
+      animate={{
+        filter: 'brightness(1)',
+        boxShadow: 'inset 0 0px 0px rgba(0,0,0,0)'
+      }}
     >
       <div className="swipe-bg-danger">
         <button onClick={() => onDelete(item.id)} className="swipe-delete-btn">
