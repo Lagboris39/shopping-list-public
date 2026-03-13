@@ -226,14 +226,11 @@ input[type="text"]:focus {
     display: flex;
     align-items: stretch;
     box-shadow: var(--shadow);
-    transition: transform 0.1s, box-shadow 0.2s;
+    transition: box-shadow 0.2s;
     border: 1px solid var(--border);
     overflow: hidden;
 }
 
-.item-card:active {
-    transform: scale(0.98);
-}
 
 /* 1行レイアウト: 左エリア */
 .item-main-area {
