@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2, ChevronRight } from 'lucide-react';
+import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2, ChevronRight, Pencil } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls, animate as springAnimate } from 'framer-motion';
 import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
@@ -397,7 +397,98 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
 };
 
 
-const CUSTOM_CATEGORY_COLORS = ['#e8f5e9', '#ffebee', '#e3f2fd', '#fff8e1', '#fff3e0', '#efebe9', '#e0f2f1', '#f3e5f5', '#e0f7fa', '#fce4ec'];
+const CategoryOrderItem = ({
+  catKey,
+  icon,
+  name,
+  color,
+  isCustom,
+  isFixed,
+  onEdit,
+  onDelete,
+  isEditing,
+  editName,
+  editIcon,
+  editColor,
+  onEditNameChange,
+  onEditIconChange,
+  onEditColorChange,
+  onSaveEdit,
+  onCancelEdit,
+  colorOptions,
+}) => {
+  const dragControls = useDragControls();
+  const rowContent = (
+    <>
+      {isEditing ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} onClick={(e) => e.stopPropagation()}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px' }}>カテゴリ名</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => onEditNameChange(e.target.value)}
+              placeholder="例：野菜・果物"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px' }}>絵文字（1〜2文字）</label>
+            <input
+              type="text"
+              value={editIcon}
+              onChange={(e) => onEditIconChange(e.target.value)}
+              maxLength={2}
+              style={{ width: '80px', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.2rem', textAlign: 'center' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>表示色</label>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {colorOptions.map(c => (
+                <button key={c} type="button" onClick={() => onEditColorChange(c)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: c, border: editColor === c ? '3px solid var(--primary)' : '2px solid var(--border)', cursor: 'pointer' }} />
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button type="button" onClick={onSaveEdit} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>保存</button>
+            <button type="button" onClick={onCancelEdit} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.9rem' }}>キャンセル</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          {!isFixed && (
+            <div
+              onPointerDown={(e) => { e.stopPropagation(); dragControls.start(e); }}
+              style={{ cursor: 'grab', marginRight: '16px', color: 'rgba(0,0,0,0.4)', touchAction: 'none', flexShrink: 0 }}
+            >
+              <GripVertical size={20} />
+            </div>
+          )}
+          {isFixed && <div style={{ width: '38px', marginRight: '16px', flexShrink: 0 }} />}
+          <span style={{ width: '32px', height: '32px', borderRadius: '8px', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', marginRight: '12px', flexShrink: 0 }}>{icon}</span>
+          <span style={{ fontWeight: 'bold', flex: 1, minWidth: 0 }}>{name}</span>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '6px', flexShrink: 0 }} title="編集"><Pencil size={18} /></button>
+          {isCustom && (
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '6px', flexShrink: 0 }} title="削除"><Trash2 size={18} /></button>
+          )}
+        </div>
+      )}
+    </>
+  );
+  return isFixed ? (
+    <div style={{ padding: '12px 16px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+      {rowContent}
+    </div>
+  ) : (
+    <Reorder.Item value={catKey} dragListener={false} dragControls={dragControls} style={{ padding: '12px 16px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+      {rowContent}
+    </Reorder.Item>
+  );
+};
+
+const CUSTOM_CATEGORY_COLORS = ['#e8f5e9', '#ffebee', '#e3f2fd', '#fff8e1', '#fff3e0', '#efebe9', '#e0f2f1', '#f3e5f5', '#e0f7fa', '#fce4ec', '#ffffff'];
+const BUILTIN_DEFAULT_HEX = { vegetable: '#e8f5e9', meat: '#ffebee', seafood: '#e3f2fd', dairy: '#fff8e1', carb: '#fff3e0', spice: '#efebe9', beverage: '#e0f2f1', daily: '#f3e5f5', frozen: '#e0f7fa', snack: '#fce4ec', other: '#ffffff' };
 
 const CustomCategoryForm = ({ onAdd }) => {
   const [name, setName] = useState('');
@@ -412,17 +503,37 @@ const CustomCategoryForm = ({ onAdd }) => {
     setColor(CUSTOM_CATEGORY_COLORS[0]);
   };
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="カテゴリ名" style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem' }} />
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="絵文字" maxLength={2} style={{ width: '48px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.2rem', textAlign: 'center' }} />
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div>
+        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px' }}>カテゴリ名</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="例：ペット用品"
+          style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.95rem', boxSizing: 'border-box' }}
+        />
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px' }}>絵文字（1〜2文字）</label>
+        <input
+          type="text"
+          value={icon}
+          onChange={(e) => setIcon(e.target.value)}
+          placeholder="📦"
+          maxLength={2}
+          style={{ width: '80px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.4rem', textAlign: 'center' }}
+        />
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '8px' }}>表示色</label>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {CUSTOM_CATEGORY_COLORS.map(c => (
-            <button key={c} type="button" onClick={() => setColor(c)} style={{ width: '24px', height: '24px', borderRadius: '50%', background: c, border: color === c ? '2px solid var(--primary)' : '2px solid transparent', cursor: 'pointer' }} />
+            <button key={c} type="button" onClick={() => setColor(c)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: c, border: color === c ? '3px solid var(--primary)' : '2px solid var(--border)', cursor: 'pointer' }} />
           ))}
         </div>
       </div>
-      <button type="submit" style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>追加</button>
+      <button type="submit" style={{ padding: '14px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem' }}>カテゴリを追加</button>
     </form>
   );
 };
@@ -451,8 +562,13 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [learnedCategories, setLearnedCategories] = useState({});
   const [categoryOrder, setCategoryOrder] = useState(Object.keys(categoryNames));
+  const [categoryOverrides, setCategoryOverrides] = useState({});
   const [selectedItemForCategory, setSelectedItemForCategory] = useState(null);
-  const [isCategoryOrderMode, setIsCategoryOrderMode] = useState(false);
+  const [showCategoryManageMode, setShowCategoryManageMode] = useState(false);
+  const [editingCatKey, setEditingCatKey] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editIcon, setEditIcon] = useState('');
+  const [editColor, setEditColor] = useState('');
   const [showTutorial, setShowTutorial] = useState(false);
   const [showPriceCalc, setShowPriceCalc] = useState(false);
   const [calcA, setCalcA] = useState({ price: '', amount: '' });
@@ -480,6 +596,11 @@ function App() {
     const names = { ...categoryNames };
     const colors = { ...categoryColors };
     const icons = { ...categoryIcons };
+    for (const [key, override] of Object.entries(categoryOverrides)) {
+      if (override.name != null) names[key] = override.name;
+      if (override.icon != null) icons[key] = override.icon;
+      if (override.color != null) colors[key] = override.color;
+    }
     for (const c of customCategories) {
       names[c.id] = c.name;
       colors[c.id] = c.color || categoryColors.other;
@@ -488,7 +609,7 @@ function App() {
     const customIds = customCategories.map(c => c.id);
     const order = [...categoryOrder.filter(k => k !== 'other'), ...customIds.filter(id => !categoryOrder.includes(id)), 'other'];
     return { mergedCategoryNames: names, mergedCategoryColors: colors, mergedCategoryIcons: icons, effectiveCategoryOrder: order };
-  }, [customCategories, categoryOrder]);
+  }, [customCategories, categoryOrder, categoryOverrides]);
 
   const addCustomCategory = (name, icon, color) => {
     const id = 'custom_' + Date.now();
@@ -511,6 +632,30 @@ function App() {
       saveSetting('categoryOrder', order);
       return order;
     });
+  };
+
+  const updateCategoryOverride = (catKey, { name, icon, color }) => {
+    const next = {
+      ...categoryOverrides,
+      [catKey]: {
+        ...(categoryOverrides[catKey] || {}),
+        ...(name != null && { name }),
+        ...(icon != null && { icon }),
+        ...(color != null && { color }),
+      },
+    };
+    setCategoryOverrides(next);
+    saveSetting('categoryOverrides', next);
+  };
+
+  const updateCustomCategory = (id, { name, icon, color }) => {
+    const next = customCategories.map(c =>
+      c.id === id
+        ? { ...c, ...(name != null && { name }), ...(icon != null && { icon }), ...(color != null && { color }) }
+        : c
+    );
+    setCustomCategories(next);
+    saveSetting('customCategories', next);
   };
 
   const dismissTutorial = () => {
@@ -542,10 +687,12 @@ function App() {
       const dbLearned = await getLearnedCategories();
       const dbCatOrder = await getSetting('categoryOrder');
       const dbCustom = await getSetting('customCategories');
+      const dbOverrides = await getSetting('categoryOverrides');
       setItems(dbItems || []);
       setHistory(dbHistory || []);
       setLearnedCategories(dbLearned || {});
       setCustomCategories(dbCustom || []);
+      setCategoryOverrides(dbOverrides || {});
       let order = dbCatOrder || Object.keys(categoryNames);
       const customIds = (dbCustom || []).map(c => c.id);
       for (const id of customIds) {
@@ -725,7 +872,7 @@ function App() {
     await saveItems(newItems);
 
     setSelectedItemForCategory(null);
-    showSuccess(`「${categoryNames[nextCategory]}」に分類しました`);
+    showSuccess(`「${mergedCategoryNames[nextCategory] || categoryNames[nextCategory]}」に分類しました`);
   };
 
   const toggleStar = async (id) => {
@@ -1012,21 +1159,19 @@ function App() {
 
                 <div className="settings-section">
                   <h3 className="section-title">カスタマイズ</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                      <GripVertical size={16} /> カテゴリの並び替え
+                  <button
+                    onClick={() => { setIsMenuOpen(false); document.activeElement?.blur(); setShowCategoryManageMode(true); }}
+                    style={{
+                      width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '10px 0', marginBottom: '14px',
+                      fontSize: '0.95rem', color: 'var(--text-main)', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ListTodo size={16} /> カテゴリの管理
                     </span>
-                    <button
-                      onClick={() => { setIsMenuOpen(false); document.activeElement?.blur(); setIsCategoryOrderMode(true); }}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--text-secondary)', padding: '2px',
-                        display: 'flex', alignItems: 'center',
-                      }}
-                    >
-                      <ChevronRight size={20} />
-                    </button>
-                  </div>
+                    <ChevronRight size={18} style={{ color: 'var(--text-secondary)' }} />
+                  </button>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
@@ -1047,23 +1192,6 @@ function App() {
                       />
                     </div>
                   </div>
-                  {showCategoryFeature && (
-                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                      <h4 style={{ fontSize: '0.9rem', marginBottom: '10px', color: 'var(--text-main)' }}>カスタムカテゴリ</h4>
-                      <CustomCategoryForm onAdd={addCustomCategory} />
-                      {customCategories.length > 0 && (
-                        <ul style={{ listStyle: 'none', padding: 0, marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {customCategories.map(c => (
-                            <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
-                              <span style={{ width: '28px', height: '28px', borderRadius: '6px', background: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>{c.icon}</span>
-                              <span style={{ flex: 1, fontSize: '0.9rem' }}>{c.name}</span>
-                              <button onClick={() => removeCustomCategory(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px' }} title="削除"><Trash2 size={16} /></button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="settings-section">
@@ -1384,16 +1512,17 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Category Order Modal */}
+      {/* Category Manage Modal (unified) */}
       <AnimatePresence>
-        {isCategoryOrderMode && (
+        {showCategoryManageMode && (
           <>
             <motion.div
               variants={overlayVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="drawer-overlay" onClick={() => setIsCategoryOrderMode(false)}
+              className="drawer-overlay"
+              onClick={() => { setShowCategoryManageMode(false); setEditingCatKey(null); }}
               style={{ zIndex: 100 }}
             />
             <motion.div
@@ -1403,41 +1532,122 @@ function App() {
               exit="exit"
               transition={drawerTransition}
               style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, height: '80vh', backgroundColor: 'var(--card-bg)',
+                position: 'fixed', bottom: 0, left: 0, right: 0, height: '85vh', backgroundColor: 'var(--card-bg)',
                 borderTopLeftRadius: '20px', borderTopRightRadius: '20px', padding: '20px',
                 zIndex: 101, boxShadow: '0 -4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0 }}>カテゴリの並び替え</h3>
-                <button onClick={() => setIsCategoryOrderMode(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={24} /></button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>カテゴリの管理</h3>
+                <button onClick={() => { setShowCategoryManageMode(false); setEditingCatKey(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)' }}><X size={24} /></button>
               </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-color)', opacity: 0.8, marginBottom: '20px' }}>
-                スーパーの売り場・陳列順に合わせて並び替えると、買い周りが一層スムーズになります。（上下にドラッグ＆ドロップ）
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                並び替え・編集・追加ができます。ハンドルをドラッグして順序を変更し、編集ボタンで名前・絵文字・色を変更できます。
               </p>
               <div style={{ flex: 1, overflowY: 'auto' }}>
-                <Reorder.Group axis="y" values={categoryOrder} onReorder={(newOrder) => {
-                  setCategoryOrder(newOrder);
-                  if (categoryOrderSaveTimeoutRef.current) {
-                    clearTimeout(categoryOrderSaveTimeoutRef.current);
-                  }
-                  categoryOrderSaveTimeoutRef.current = setTimeout(() => {
-                    saveSetting('categoryOrder', newOrder);
-                    categoryOrderSaveTimeoutRef.current = null;
-                  }, 400);
-                }} style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '40px' }}>
-                  {categoryOrder.map(catKey => (
-                    <Reorder.Item key={catKey} value={catKey} style={{
-                      padding: '12px 16px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                    }}>
-                      <div style={{ cursor: 'grab', marginRight: '16px', color: 'rgba(0,0,0,0.4)', touchAction: 'none' }}>
-                        <GripVertical size={20} />
-                      </div>
-                      <span style={{ fontSize: '20px', marginRight: '12px' }}>{mergedCategoryIcons[catKey] || '🏷️'}</span>
-                      <span style={{ fontWeight: 'bold' }}>{mergedCategoryNames[catKey] || 'その他'}</span>
-                    </Reorder.Item>
-                  ))}
+                <Reorder.Group
+                  axis="y"
+                  values={categoryOrder.filter(k => k !== 'other')}
+                  onReorder={(newOrder) => {
+                    const order = [...newOrder, 'other'];
+                    setCategoryOrder(order);
+                    if (categoryOrderSaveTimeoutRef.current) clearTimeout(categoryOrderSaveTimeoutRef.current);
+                    categoryOrderSaveTimeoutRef.current = setTimeout(() => {
+                      saveSetting('categoryOrder', order);
+                      categoryOrderSaveTimeoutRef.current = null;
+                    }, 400);
+                  }}
+                  style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '16px' }}
+                >
+                  {categoryOrder.filter(k => k !== 'other').map(catKey => {
+                    const isCustom = catKey.startsWith('custom_');
+                    const isEditing = editingCatKey === catKey;
+                    const dispName = mergedCategoryNames[catKey] || 'その他';
+                    const dispIcon = mergedCategoryIcons[catKey] || '🏷️';
+                    const dispColor = mergedCategoryColors[catKey] || categoryColors.other;
+                    return (
+                      <CategoryOrderItem
+                        key={catKey}
+                        catKey={catKey}
+                        icon={dispIcon}
+                        name={dispName}
+                        color={dispColor}
+                        isCustom={isCustom}
+                        isFixed={false}
+                        onEdit={() => {
+                          setEditingCatKey(catKey);
+                          if (isCustom) {
+                            const c = customCategories.find(x => x.id === catKey);
+                            setEditName(c?.name || '');
+                            setEditIcon(c?.icon || '🏷️');
+                            setEditColor(c?.color || CUSTOM_CATEGORY_COLORS[0]);
+                          } else {
+                            const ov = categoryOverrides[catKey];
+                            setEditName(ov?.name ?? dispName);
+                            setEditIcon(ov?.icon ?? dispIcon);
+                            const hexColor = ov?.color ?? BUILTIN_DEFAULT_HEX[catKey] ?? CUSTOM_CATEGORY_COLORS[0];
+                            setEditColor(CUSTOM_CATEGORY_COLORS.includes(hexColor) ? hexColor : (BUILTIN_DEFAULT_HEX[catKey] ?? CUSTOM_CATEGORY_COLORS[0]));
+                          }
+                        }}
+                        onDelete={() => removeCustomCategory(catKey)}
+                        isEditing={isEditing}
+                        editName={editName}
+                        editIcon={editIcon}
+                        editColor={editColor}
+                        onEditNameChange={setEditName}
+                        onEditIconChange={setEditIcon}
+                        onEditColorChange={setEditColor}
+                        onSaveEdit={() => {
+                          if (isCustom) {
+                            updateCustomCategory(catKey, { name: editName.trim(), icon: editIcon || '🏷️', color: editColor });
+                          } else {
+                            updateCategoryOverride(catKey, { name: editName.trim(), icon: editIcon || '🏷️', color: editColor });
+                          }
+                          setEditingCatKey(null);
+                          showSuccess('保存しました');
+                        }}
+                        onCancelEdit={() => setEditingCatKey(null)}
+                        colorOptions={CUSTOM_CATEGORY_COLORS}
+                      />
+                    );
+                  })}
                 </Reorder.Group>
+                {/* その他（常に末尾固定） */}
+                <div style={{ marginBottom: '24px' }}>
+                  <CategoryOrderItem
+                    catKey="other"
+                    icon={mergedCategoryIcons.other || '🏷️'}
+                    name={mergedCategoryNames.other || 'その他'}
+                    color={mergedCategoryColors.other || categoryColors.other}
+                    isCustom={false}
+                    isFixed={true}
+                    onEdit={() => {
+                      setEditingCatKey('other');
+                      const ov = categoryOverrides.other;
+                      setEditName(ov?.name ?? (mergedCategoryNames.other || 'その他'));
+                      setEditIcon(ov?.icon ?? (mergedCategoryIcons.other || '🏷️'));
+                      const hexColor = ov?.color ?? BUILTIN_DEFAULT_HEX.other;
+                      setEditColor(CUSTOM_CATEGORY_COLORS.includes(hexColor) ? hexColor : BUILTIN_DEFAULT_HEX.other);
+                    }}
+                    onDelete={() => {}}
+                    isEditing={editingCatKey === 'other'}
+                    editName={editName}
+                    editIcon={editIcon}
+                    editColor={editColor}
+                    onEditNameChange={setEditName}
+                    onEditIconChange={setEditIcon}
+                    onEditColorChange={setEditColor}
+                    onSaveEdit={() => {
+                      updateCategoryOverride('other', { name: editName.trim(), icon: editIcon || '🏷️', color: editColor });
+                      setEditingCatKey(null);
+                      showSuccess('保存しました');
+                    }}
+                    onCancelEdit={() => setEditingCatKey(null)}
+                    colorOptions={CUSTOM_CATEGORY_COLORS}
+                  />
+                </div>
+                <h4 style={{ fontSize: '0.9rem', marginBottom: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>新規追加</h4>
+                <CustomCategoryForm onAdd={(name, icon, color) => { addCustomCategory(name, icon, color); showSuccess('カテゴリを追加しました'); }} />
               </div>
             </motion.div>
           </>
