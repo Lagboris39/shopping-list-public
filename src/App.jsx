@@ -1170,10 +1170,10 @@ function App() {
       <header className="header">
         <div className="header-main">
           <div className="header-left">
-            <img src={import.meta.env.BASE_URL + 'icon.png'} alt="App Icon" className="app-icon" />
+            <img src={import.meta.env.BASE_URL + 'icon.png'} alt="カウモノ" className="app-icon" />
             <div className="header-titles">
               <span className="sub-title">お買い物リスト</span>
-              <h1 className="title">買い物行くドン！</h1>
+              <h1 className="title">カウモノ</h1>
             </div>
           </div>
           <div className="header-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -1312,7 +1312,7 @@ function App() {
                 </div>
 
                 <div className="drawer-footer">
-                  <p>買い物行くドン！ v1.5.0</p>
+                  <p>カウモノ v1.5.0</p>
                 </div>
               </div>
             </motion.div>
