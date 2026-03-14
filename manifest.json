@@ -1,6 +1,6 @@
 {
-    "name": "買い物行くドン！",
-    "short_name": "買い物行くドン！",
+    "name": "カウモノ",
+    "short_name": "カウモノ",
     "start_url": "./",
     "scope": "/shopping-list-public/",
     "display": "standalone",
