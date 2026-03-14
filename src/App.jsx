@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Check, ShoppingBag, Loader2, Server, GripVertical, Trash2, History, ListTodo, RefreshCcw, Search, AlertCircle, X, Calendar, Settings, Sun, Moon, Smartphone, Pointer, HelpCircle, Scale, ZoomIn, ZoomOut, Star, Share2, ChevronRight, Pencil, List } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, Reorder, useDragControls, animate as springAnimate } from 'framer-motion';
-import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory } from './db';
+import { getItems, saveItems, getHistory, saveHistory, getSetting, saveSetting, getLearnedCategories, saveLearnedCategory, deleteLearnedCategoriesByValue } from './db';
 import { categoryDict, categoryColors, categoryNames, categoryIcons } from './categoryDict';
 
 const overlayVariants = {
@@ -110,7 +110,7 @@ const getItemEmoji = (name) => {
   return null;
 };
 
-const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar, showStarFeature = true, categoryColorsMap = categoryColors }) => {
+const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar, showStarFeature = true, categoryColorsMap = categoryColors, isTutorialCard = false }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
   const x = useMotionValue(0);
@@ -181,7 +181,10 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
       </div>
 
       <motion.div
-        style={{ x, backgroundColor: catColor, position: 'relative', zIndex: 2, boxShadow: 'var(--shadow)', touchAction: 'pan-y' }}
+        style={{
+          x, backgroundColor: catColor, position: 'relative', zIndex: 2, boxShadow: 'var(--shadow)', touchAction: 'pan-y',
+          ...(isTutorialCard && { border: '2px dashed rgba(0,0,0,0.2)', borderRadius: '12px' })
+        }}
         drag="x"
         dragListener={false}
         dragControls={swipeDragControls}
@@ -396,13 +399,60 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
   );
 };
 
+const CategoryGroupRow = ({ catKey, catItems, mergedCategoryColors, mergedCategoryIcons, categoryColors, renderItem, items, showStarFeature, handleReorder }) => {
+  const dragControls = useDragControls();
+  const onItemsReorder = (newOrder) => {
+    let catKeyReplaced = false;
+    const newFullList = items.flatMap(i => {
+      if ((i.category || 'other') === catKey) {
+        if (!catKeyReplaced) {
+          catKeyReplaced = true;
+          return newOrder;
+        }
+        return [];
+      }
+      return [i];
+    });
+    handleReorder(newFullList.map((item, idx) => ({ ...item, order_index: idx })));
+  };
+  return (
+    <Reorder.Item
+      value={catKey}
+      dragListener={false}
+      dragControls={dragControls}
+      style={{ display: 'flex', gap: '8px', marginBottom: '16px', listStyle: 'none' }}
+    >
+      <div
+        onPointerDown={(e) => { e.stopPropagation(); dragControls.start(e); }}
+        className="category-sidebar"
+        style={{
+          width: '40px', flexShrink: 0, cursor: 'grab', touchAction: 'none',
+          backgroundColor: mergedCategoryColors[catKey] || categoryColors.other,
+          borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
+        {mergedCategoryIcons[catKey] || '🏷️'}
+      </div>
+      <Reorder.Group
+        axis="y"
+        values={catItems}
+        onReorder={onItemsReorder}
+        style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
+      >
+        {catItems.map(renderItem)}
+      </Reorder.Group>
+    </Reorder.Item>
+  );
+};
 
 const CategoryOrderItem = ({
   catKey,
   icon,
   name,
   color,
-  isCustom,
+  isDeletable,
   isFixed,
   onEdit,
   onDelete,
@@ -469,7 +519,7 @@ const CategoryOrderItem = ({
           <span style={{ width: '32px', height: '32px', borderRadius: '8px', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', marginRight: '12px', flexShrink: 0 }}>{icon}</span>
           <span style={{ fontWeight: 'bold', flex: 1, minWidth: 0 }}>{name}</span>
           <button onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '6px', flexShrink: 0 }} title="編集"><Pencil size={18} /></button>
-          {isCustom && (
+          {isDeletable && (
             <button onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '6px', flexShrink: 0 }} title="削除"><Trash2 size={18} /></button>
           )}
         </div>
@@ -489,6 +539,17 @@ const CategoryOrderItem = ({
 
 const CUSTOM_CATEGORY_COLORS = ['#e8f5e9', '#ffebee', '#e3f2fd', '#fff8e1', '#fff3e0', '#efebe9', '#e0f2f1', '#f3e5f5', '#e0f7fa', '#fce4ec', '#ffffff'];
 const BUILTIN_DEFAULT_HEX = { vegetable: '#e8f5e9', meat: '#ffebee', seafood: '#e3f2fd', dairy: '#fff8e1', carb: '#fff3e0', spice: '#efebe9', beverage: '#e0f2f1', daily: '#f3e5f5', frozen: '#e0f7fa', snack: '#fce4ec', other: '#ffffff' };
+
+const DEMO_ITEMS = [
+  { id: 'demo_1', name: '牛乳', category: 'dairy', order_index: 0, starred: false },
+  { id: 'demo_2', name: '右の✓で購入済みに', category: 'other', order_index: 1, starred: false, isTutorialCard: true },
+  { id: 'demo_3', name: 'にんじん', category: 'vegetable', order_index: 2, starred: false },
+  { id: 'demo_4', name: '長押しでカテゴリ変更', category: 'other', order_index: 3, starred: false, isTutorialCard: true },
+  { id: 'demo_5', name: '卵', category: 'dairy', order_index: 4, starred: false },
+  { id: 'demo_6', name: '左にスワイプで削除', category: 'other', order_index: 5, starred: false, isTutorialCard: true },
+  { id: 'demo_7', name: 'パン', category: 'carb', order_index: 6, starred: false },
+  { id: 'demo_8', name: '☆を押すと優先表示', category: 'other', order_index: 7, starred: false, isTutorialCard: true },
+];
 
 const CustomCategoryForm = ({ onAdd }) => {
   const [name, setName] = useState('');
@@ -563,6 +624,7 @@ function App() {
   const [learnedCategories, setLearnedCategories] = useState({});
   const [categoryOrder, setCategoryOrder] = useState(Object.keys(categoryNames));
   const [categoryOverrides, setCategoryOverrides] = useState({});
+  const [deletedCategoryIds, setDeletedCategoryIds] = useState([]);
   const [selectedItemForCategory, setSelectedItemForCategory] = useState(null);
   const [showCategoryManageMode, setShowCategoryManageMode] = useState(false);
   const [editingCatKey, setEditingCatKey] = useState(null);
@@ -584,6 +646,7 @@ function App() {
     () => parseFloat(localStorage.getItem('listZoom') || '1')
   );
   const [showShareConfirm, setShowShareConfirm] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   const zoomIn = () => { const v = Math.min(1.2, Math.round((listZoom + 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
   const zoomOut = () => { const v = Math.max(0.6, Math.round((listZoom - 0.1) * 10) / 10); setListZoom(v); localStorage.setItem('listZoom', String(v)); };
@@ -607,9 +670,10 @@ function App() {
       icons[c.id] = c.icon || '🏷️';
     }
     const customIds = customCategories.map(c => c.id);
-    const order = [...categoryOrder.filter(k => k !== 'other'), ...customIds.filter(id => !categoryOrder.includes(id)), 'other'];
+    const deletedSet = new Set(deletedCategoryIds);
+    const order = [...categoryOrder.filter(k => k !== 'other' && !deletedSet.has(k)), ...customIds.filter(id => !categoryOrder.includes(id)), 'other'];
     return { mergedCategoryNames: names, mergedCategoryColors: colors, mergedCategoryIcons: icons, effectiveCategoryOrder: order };
-  }, [customCategories, categoryOrder, categoryOverrides]);
+  }, [customCategories, categoryOrder, categoryOverrides, deletedCategoryIds]);
 
   const addCustomCategory = (name, icon, color) => {
     const id = 'custom_' + Date.now();
@@ -658,6 +722,30 @@ function App() {
     saveSetting('customCategories', next);
   };
 
+  const removeBuiltinCategory = async (catKey) => {
+    const nextDeleted = [...deletedCategoryIds, catKey];
+    setDeletedCategoryIds(nextDeleted);
+    saveSetting('deletedCategoryIds', nextDeleted);
+    const updatedItems = items.map(i => (i.category || 'other') === catKey ? { ...i, category: 'other' } : i);
+    setItems(updatedItems);
+    await saveItems(updatedItems);
+    const updatedHistory = history.map(h => (h.category || 'other') === catKey ? { ...h, category: 'other' } : h);
+    setHistory(updatedHistory);
+    await saveHistory(updatedHistory);
+    await deleteLearnedCategoriesByValue(catKey);
+    const newLearned = Object.fromEntries(Object.entries(learnedCategories).filter(([, v]) => v !== catKey));
+    setLearnedCategories(newLearned);
+    setCategoryOrder(prev => {
+      const order = prev.filter(k => k !== catKey);
+      saveSetting('categoryOrder', order);
+      return order;
+    });
+    const { [catKey]: _, ...restOverrides } = categoryOverrides;
+    setCategoryOverrides(restOverrides);
+    saveSetting('categoryOverrides', restOverrides);
+    showSuccess('カテゴリを削除しました');
+  };
+
   const dismissTutorial = () => {
     localStorage.setItem('hasSeenTutorial', 'true');
     setShowTutorial(false);
@@ -688,11 +776,18 @@ function App() {
       const dbCatOrder = await getSetting('categoryOrder');
       const dbCustom = await getSetting('customCategories');
       const dbOverrides = await getSetting('categoryOverrides');
-      setItems(dbItems || []);
+      const dbDeleted = await getSetting('deletedCategoryIds');
+      if (!dbItems || dbItems.length === 0) {
+        await saveItems(DEMO_ITEMS);
+        setItems([...DEMO_ITEMS]);
+      } else {
+        setItems(dbItems || []);
+      }
       setHistory(dbHistory || []);
       setLearnedCategories(dbLearned || {});
       setCustomCategories(dbCustom || []);
       setCategoryOverrides(dbOverrides || {});
+      setDeletedCategoryIds(dbDeleted || []);
       let order = dbCatOrder || Object.keys(categoryNames);
       const customIds = (dbCustom || []).map(c => c.id);
       for (const id of customIds) {
@@ -741,7 +836,8 @@ function App() {
   const getInitialCategory = (name) => {
     const trimmedName = name.trim();
     const lowerName = trimmedName.toLowerCase();
-    return categoryDict[trimmedName] || categoryDict[lowerName] || learnedCategories[trimmedName] || learnedCategories[lowerName] || "other";
+    const raw = categoryDict[trimmedName] || categoryDict[lowerName] || learnedCategories[trimmedName] || learnedCategories[lowerName] || "other";
+    return deletedCategoryIds.includes(raw) ? "other" : raw;
   };
 
   const addSpecificItem = async (name) => {
@@ -1470,7 +1566,7 @@ function App() {
                   <div>
                     <h4 style={{ margin: '0 0 4px 0' }}>テキストから一括追加</h4>
                     <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-color)', opacity: 0.8 }}>
-                      候補一覧タブの「＋」ボタンから、LINEなどで送付された「牛乳２ 洗剤」等のテキストをコピペすると、個数と商品名を自動で分離してリスト化します！
+                      「一括追加」ボタンから、LINEなどで送付されたテキストを貼り付けて個数と商品名を自動分離します。
                     </p>
                   </div>
                 </div>
@@ -1480,9 +1576,9 @@ function App() {
                     <Pointer size={24} color="#eab308" />
                   </div>
                   <div>
-                    <h4 style={{ margin: '0 0 4px 0' }}>タップで賢くカテゴリ学習</h4>
+                    <h4 style={{ margin: '0 0 4px 0' }}>長押しでカテゴリ変更</h4>
                     <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-color)', opacity: 0.8 }}>
-                      リストにある商品の「左端の色付き丸」をタップするとカテゴリを変更できます。変更するとアプリが学習し、次回からは自動でそのカテゴリに振り分けられます。
+                      リストの品目を長押しするとカテゴリを変更でき、学習して次回から自動振り分けされます。
                     </p>
                   </div>
                 </div>
@@ -1492,9 +1588,21 @@ function App() {
                     <GripVertical size={24} color="#22c55e" />
                   </div>
                   <div>
-                    <h4 style={{ margin: '0 0 4px 0' }}>自分好みに並び替え</h4>
+                    <h4 style={{ margin: '0 0 4px 0' }}>並び替え</h4>
                     <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-color)', opacity: 0.8 }}>
-                      左側の「⋮⋮」を押し込む（約1秒間）とアイテムの順番を変えられます。右上メニューからは「スーパーの売り場ごとの順番」も自由にカスタマイズ可能です！
+                      左の⋮⋮をドラッグしてアイテムの順番を変更。カテゴリのサイドバーをドラッグしてカテゴリ順も変更可能です。
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <List size={24} color="#a855f7" />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0' }}>その他</h4>
+                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-color)', opacity: 0.8 }}>
+                      左スワイプで削除、☆で優先表示、▲▼で数量変更、右の✓で購入済みに。設定の「カテゴリの管理」で並び・追加・編集が可能です。
                     </p>
                   </div>
                 </div>
@@ -1547,7 +1655,7 @@ function App() {
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 <Reorder.Group
                   axis="y"
-                  values={categoryOrder.filter(k => k !== 'other')}
+                  values={categoryOrder.filter(k => k !== 'other' && !deletedCategoryIds.includes(k))}
                   onReorder={(newOrder) => {
                     const order = [...newOrder, 'other'];
                     setCategoryOrder(order);
@@ -1559,7 +1667,7 @@ function App() {
                   }}
                   style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '16px' }}
                 >
-                  {categoryOrder.filter(k => k !== 'other').map(catKey => {
+                  {categoryOrder.filter(k => k !== 'other' && !deletedCategoryIds.includes(k)).map(catKey => {
                     const isCustom = catKey.startsWith('custom_');
                     const isEditing = editingCatKey === catKey;
                     const dispName = mergedCategoryNames[catKey] || 'その他';
@@ -1572,7 +1680,7 @@ function App() {
                         icon={dispIcon}
                         name={dispName}
                         color={dispColor}
-                        isCustom={isCustom}
+                        isDeletable={true}
                         isFixed={false}
                         onEdit={() => {
                           setEditingCatKey(catKey);
@@ -1589,7 +1697,7 @@ function App() {
                             setEditColor(CUSTOM_CATEGORY_COLORS.includes(hexColor) ? hexColor : (BUILTIN_DEFAULT_HEX[catKey] ?? CUSTOM_CATEGORY_COLORS[0]));
                           }
                         }}
-                        onDelete={() => removeCustomCategory(catKey)}
+                        onDelete={() => setCategoryToDelete({ catKey, isCustom })}
                         isEditing={isEditing}
                         editName={editName}
                         editIcon={editIcon}
@@ -1619,7 +1727,7 @@ function App() {
                     icon={mergedCategoryIcons.other || '🏷️'}
                     name={mergedCategoryNames.other || 'その他'}
                     color={mergedCategoryColors.other || categoryColors.other}
-                    isCustom={false}
+                    isDeletable={false}
                     isFixed={true}
                     onEdit={() => {
                       setEditingCatKey('other');
@@ -1648,6 +1756,51 @@ function App() {
                 </div>
                 <h4 style={{ fontSize: '0.9rem', marginBottom: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>新規追加</h4>
                 <CustomCategoryForm onAdd={(name, icon, color) => { addCustomCategory(name, icon, color); showSuccess('カテゴリを追加しました'); }} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Category Delete Confirmation */}
+      <AnimatePresence>
+        {categoryToDelete && (
+          <>
+            <motion.div
+              variants={overlayVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="drawer-overlay"
+              onClick={() => setCategoryToDelete(null)}
+              style={{ zIndex: 110 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{
+                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                zIndex: 111, width: 'min(90vw, 320px)', backgroundColor: 'var(--card-bg)',
+                borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-lg)'
+              }}
+            >
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem' }}>このカテゴリを削除しますか？</h4>
+              <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                含まれる品目は「その他」に振り替えられます。
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setCategoryToDelete(null)} style={{ padding: '10px 16px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.9rem' }}>キャンセル</button>
+                <button onClick={() => {
+                  const { catKey, isCustom } = categoryToDelete;
+                  setCategoryToDelete(null);
+                  if (isCustom) {
+                    removeCustomCategory(catKey);
+                    showSuccess('カテゴリを削除しました');
+                  } else {
+                    removeBuiltinCategory(catKey);
+                  }
+                }} style={{ padding: '10px 16px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>削除</button>
               </div>
             </motion.div>
           </>
@@ -1732,6 +1885,7 @@ function App() {
                         onToggleStar={toggleStar}
                         showStarFeature={showStarFeature}
                         categoryColorsMap={mergedCategoryColors}
+                        isTutorialCard={item.isTutorialCard}
                       />
                     );
 
@@ -1778,36 +1932,44 @@ function App() {
                               .map(renderItem)}
                           </Reorder.Group>
                         ) : (
-                          /* カテゴリグループ（非星アイテム） */
-                          effectiveCategoryOrder
-                            .filter(catKey => nonStarredItems.some(i => (i.category || 'other') === catKey))
-                            .map(catKey => {
-                              const catItems = nonStarredItems.filter(i => (i.category || 'other') === catKey);
-                              return (
-                                <div key={catKey} className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                  <div className="category-sidebar" style={{
-                                    width: '40px', flexShrink: 0,
-                                    backgroundColor: mergedCategoryColors[catKey] || categoryColors.other,
-                                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
-                                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
-                                  }}>
-                                    {mergedCategoryIcons[catKey] || '🏷️'}
-                                  </div>
-                                  <Reorder.Group
-                                    axis="y"
-                                    values={catItems}
-                                    onReorder={(newOrder) => {
-                                      const others = items.filter(i => (showStarFeature && i.starred) || (i.category || 'other') !== catKey);
-                                      handleReorder([...others, ...newOrder]);
-                                    }}
-                                    style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}
-                                  >
-                                    {catItems.map(renderItem)}
-                                  </Reorder.Group>
-                                </div>
-                              );
-                            })
+                          /* カテゴリグループ（非星アイテム）リスト画面でドラッグして並び替え可能 */
+                          (() => {
+                            const visibleCategoryKeys = effectiveCategoryOrder.filter(catKey => nonStarredItems.some(i => (i.category || 'other') === catKey));
+                            return (
+                              <Reorder.Group
+                                axis="y"
+                                values={visibleCategoryKeys}
+                                onReorder={(newOrder) => {
+                                  const order = [...newOrder.filter(k => k !== 'other'), ...effectiveCategoryOrder.filter(k => k !== 'other' && !newOrder.includes(k)), 'other'];
+                                  setCategoryOrder(order);
+                                  if (categoryOrderSaveTimeoutRef.current) clearTimeout(categoryOrderSaveTimeoutRef.current);
+                                  categoryOrderSaveTimeoutRef.current = setTimeout(() => {
+                                    saveSetting('categoryOrder', order);
+                                    categoryOrderSaveTimeoutRef.current = null;
+                                  }, 400);
+                                }}
+                                style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: 0, padding: 0 }}
+                              >
+                                {visibleCategoryKeys.map(catKey => {
+                                  const catItems = nonStarredItems.filter(i => (i.category || 'other') === catKey);
+                                  return (
+                                    <CategoryGroupRow
+                                      key={catKey}
+                                      catKey={catKey}
+                                      catItems={catItems}
+                                      mergedCategoryColors={mergedCategoryColors}
+                                      mergedCategoryIcons={mergedCategoryIcons}
+                                      categoryColors={categoryColors}
+                                      renderItem={renderItem}
+                                      items={items}
+                                      showStarFeature={showStarFeature}
+                                      handleReorder={handleReorder}
+                                    />
+                                  );
+                                })}
+                              </Reorder.Group>
+                            );
+                          })()
                         )}
                       </>
                     );

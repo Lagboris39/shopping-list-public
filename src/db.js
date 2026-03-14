@@ -75,6 +75,19 @@ export async function saveLearnedCategory(word, category) {
     await db.put('learnedCategories', category, word);
 }
 
+export async function deleteLearnedCategoriesByValue(categoryId) {
+    const learned = await getLearnedCategories();
+    const db = await initDB();
+    const tx = db.transaction('learnedCategories', 'readwrite');
+    const store = tx.objectStore('learnedCategories');
+    for (const [word, cat] of Object.entries(learned)) {
+        if (cat === categoryId) {
+            store.delete(word);
+        }
+    }
+    await tx.done;
+}
+
 export async function getSetting(key) {
     const db = await initDB();
     return await db.get('settings', key);
