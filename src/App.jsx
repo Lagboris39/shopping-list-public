@@ -110,7 +110,7 @@ const getItemEmoji = (name) => {
   return null;
 };
 
-const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar, showStarFeature = true }) => {
+const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQuantity, onToggleStar, showStarFeature = true, categoryColorsMap = categoryColors }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
   const x = useMotionValue(0);
@@ -155,7 +155,7 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
     window.addEventListener('pointercancel', onUp);
   };
 
-  const catColor = item.category ? categoryColors[item.category] : categoryColors.other;
+  const catColor = item.category ? categoryColorsMap[item.category] : categoryColorsMap.other;
   const emoji = getItemEmoji(item.name);
 
   return (
@@ -226,15 +226,28 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
               onPointerDown={(e) => {
                 e.stopPropagation();
                 setIsPressing(true);
+                const startX = e.clientX;
+                const startY = e.clientY;
                 let latestEvent = e;
-                const onMove = (me) => { latestEvent = me; };
-                window.addEventListener('pointermove', onMove);
+                let dragStarted = false;
+                let timer;
 
-                const timer = setTimeout(() => {
-                  window.removeEventListener('pointermove', onMove);
-                  // 現在の指の位置（latestEvent）でドラッグを開始
-                  dragControls.start(latestEvent);
-                }, 400);
+                const onMove = (me) => {
+                  const dx = me.clientX - startX;
+                  const dy = me.clientY - startY;
+                  if (!dragStarted && Math.hypot(dx, dy) >= 8 && Math.abs(dy) >= Math.abs(dx)) {
+                    dragStarted = true;
+                    window.removeEventListener('pointermove', onMove);
+                    clearTimeout(timer);
+                    window.removeEventListener('pointerup', cancel);
+                    window.removeEventListener('pointercancel', cancel);
+                    dragControls.start(e);
+                    return;
+                  }
+                  if (handleRef.current?.contains(me.target)) {
+                    latestEvent = me;
+                  }
+                };
 
                 const cancel = () => {
                   clearTimeout(timer);
@@ -243,6 +256,13 @@ const SwipeableItem = ({ item, onPurchase, onDelete, onChangeCategory, onUpdateQ
                   window.removeEventListener('pointerup', cancel);
                   window.removeEventListener('pointercancel', cancel);
                 };
+
+                window.addEventListener('pointermove', onMove);
+                timer = setTimeout(() => {
+                  if (dragStarted) return;
+                  window.removeEventListener('pointermove', onMove);
+                  dragControls.start(latestEvent);
+                }, 300);
                 window.addEventListener('pointerup', cancel);
                 window.addEventListener('pointercancel', cancel);
               }}
@@ -377,6 +397,36 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
 };
 
 
+const CUSTOM_CATEGORY_COLORS = ['#e8f5e9', '#ffebee', '#e3f2fd', '#fff8e1', '#fff3e0', '#efebe9', '#e0f2f1', '#f3e5f5', '#e0f7fa', '#fce4ec'];
+
+const CustomCategoryForm = ({ onAdd }) => {
+  const [name, setName] = useState('');
+  const [icon, setIcon] = useState('📦');
+  const [color, setColor] = useState(CUSTOM_CATEGORY_COLORS[0]);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onAdd(name.trim(), icon, color);
+    setName('');
+    setIcon('📦');
+    setColor(CUSTOM_CATEGORY_COLORS[0]);
+  };
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="カテゴリ名" style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem' }} />
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="絵文字" maxLength={2} style={{ width: '48px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1.2rem', textAlign: 'center' }} />
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {CUSTOM_CATEGORY_COLORS.map(c => (
+            <button key={c} type="button" onClick={() => setColor(c)} style={{ width: '24px', height: '24px', borderRadius: '50%', background: c, border: color === c ? '2px solid var(--primary)' : '2px solid transparent', cursor: 'pointer' }} />
+          ))}
+        </div>
+      </div>
+      <button type="submit" style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>追加</button>
+    </form>
+  );
+};
+
 function App() {
   const [items, setItems] = useState([]);
   const [history, setHistory] = useState([]);
@@ -413,6 +463,7 @@ function App() {
   const [showCategoryFeature, setShowCategoryFeature] = useState(
     () => localStorage.getItem('showCategoryFeature') !== 'false'
   );
+  const [customCategories, setCustomCategories] = useState([]);
   const [listZoom, setListZoom] = useState(
     () => parseFloat(localStorage.getItem('listZoom') || '1')
   );
@@ -425,6 +476,42 @@ function App() {
   const categoryOrderSaveTimeoutRef = useRef(null);
   const importContainerRef = useRef(null);
 
+  const { mergedCategoryNames, mergedCategoryColors, mergedCategoryIcons, effectiveCategoryOrder } = useMemo(() => {
+    const names = { ...categoryNames };
+    const colors = { ...categoryColors };
+    const icons = { ...categoryIcons };
+    for (const c of customCategories) {
+      names[c.id] = c.name;
+      colors[c.id] = c.color || categoryColors.other;
+      icons[c.id] = c.icon || '🏷️';
+    }
+    const customIds = customCategories.map(c => c.id);
+    const order = [...categoryOrder.filter(k => k !== 'other'), ...customIds.filter(id => !categoryOrder.includes(id)), 'other'];
+    return { mergedCategoryNames: names, mergedCategoryColors: colors, mergedCategoryIcons: icons, effectiveCategoryOrder: order };
+  }, [customCategories, categoryOrder]);
+
+  const addCustomCategory = (name, icon, color) => {
+    const id = 'custom_' + Date.now();
+    const next = [...customCategories, { id, name, icon: icon || '🏷️', color: color || categoryColors.other }];
+    setCustomCategories(next);
+    saveSetting('customCategories', next);
+    setCategoryOrder(prev => {
+      const order = [...prev.filter(k => k !== 'other'), id, 'other'];
+      saveSetting('categoryOrder', order);
+      return order;
+    });
+  };
+
+  const removeCustomCategory = (id) => {
+    const next = customCategories.filter(c => c.id !== id);
+    setCustomCategories(next);
+    saveSetting('customCategories', next);
+    setCategoryOrder(prev => {
+      const order = prev.filter(k => k !== id);
+      saveSetting('categoryOrder', order);
+      return order;
+    });
+  };
 
   const dismissTutorial = () => {
     localStorage.setItem('hasSeenTutorial', 'true');
@@ -454,10 +541,19 @@ function App() {
       const dbHistory = await getHistory();
       const dbLearned = await getLearnedCategories();
       const dbCatOrder = await getSetting('categoryOrder');
+      const dbCustom = await getSetting('customCategories');
       setItems(dbItems || []);
       setHistory(dbHistory || []);
       setLearnedCategories(dbLearned || {});
-      if (dbCatOrder) setCategoryOrder(dbCatOrder);
+      setCustomCategories(dbCustom || []);
+      let order = dbCatOrder || Object.keys(categoryNames);
+      const customIds = (dbCustom || []).map(c => c.id);
+      for (const id of customIds) {
+        if (!order.includes(id)) {
+          order = [...order.filter(k => k !== 'other'), id, 'other'];
+        }
+      }
+      setCategoryOrder(order);
       setLoading(false);
     };
     loadData();
@@ -951,6 +1047,23 @@ function App() {
                       />
                     </div>
                   </div>
+                  {showCategoryFeature && (
+                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '0.9rem', marginBottom: '10px', color: 'var(--text-main)' }}>カスタムカテゴリ</h4>
+                      <CustomCategoryForm onAdd={addCustomCategory} />
+                      {customCategories.length > 0 && (
+                        <ul style={{ listStyle: 'none', padding: 0, marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {customCategories.map(c => (
+                            <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
+                              <span style={{ width: '28px', height: '28px', borderRadius: '6px', background: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>{c.icon}</span>
+                              <span style={{ flex: 1, fontSize: '0.9rem' }}>{c.name}</span>
+                              <button onClick={() => removeCustomCategory(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px' }} title="削除"><Trash2 size={16} /></button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="settings-section">
@@ -1171,20 +1284,20 @@ function App() {
                 <button onClick={() => setSelectedItemForCategory(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={24} /></button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {Object.keys(categoryNames).map(key => (
+                {effectiveCategoryOrder.filter(k => k !== 'other').concat(['other']).map(key => (
                   <button
                     key={key}
                     onClick={() => confirmCategoryChange(selectedItemForCategory, key)}
                     style={{
                       padding: '12px', borderRadius: '8px', cursor: 'pointer',
-                      backgroundColor: categoryColors[key] || categoryColors.other,
-                      border: (selectedItemForCategory.category || 'other') === key ? '2px solid var(--theme-color)' : '1px solid rgba(0,0,0,0.1)',
+                      backgroundColor: mergedCategoryColors[key] || categoryColors.other,
+                      border: (selectedItemForCategory.category || 'other') === key ? '2px solid var(--primary)' : '1px solid rgba(0,0,0,0.1)',
                       fontWeight: 'bold', textAlign: 'center', color: 'var(--text-main)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>{categoryIcons[key] || '🏷️'}</span>
-                    <span>{categoryNames[key]}</span>
+                    <span style={{ fontSize: '18px' }}>{mergedCategoryIcons[key] || '🏷️'}</span>
+                    <span>{mergedCategoryNames[key]}</span>
                   </button>
                 ))}
               </div>
@@ -1320,8 +1433,8 @@ function App() {
                       <div style={{ cursor: 'grab', marginRight: '16px', color: 'rgba(0,0,0,0.4)', touchAction: 'none' }}>
                         <GripVertical size={20} />
                       </div>
-                      <span style={{ fontSize: '20px', marginRight: '12px' }}>{categoryIcons[catKey] || '🏷️'}</span>
-                      <span style={{ fontWeight: 'bold' }}>{categoryNames[catKey] || 'その他'}</span>
+                      <span style={{ fontSize: '20px', marginRight: '12px' }}>{mergedCategoryIcons[catKey] || '🏷️'}</span>
+                      <span style={{ fontWeight: 'bold' }}>{mergedCategoryNames[catKey] || 'その他'}</span>
                     </Reorder.Item>
                   ))}
                 </Reorder.Group>
@@ -1408,6 +1521,7 @@ function App() {
                         onUpdateQuantity={updateQuantity}
                         onToggleStar={toggleStar}
                         showStarFeature={showStarFeature}
+                        categoryColorsMap={mergedCategoryColors}
                       />
                     );
 
@@ -1455,7 +1569,7 @@ function App() {
                           </Reorder.Group>
                         ) : (
                           /* カテゴリグループ（非星アイテム） */
-                          categoryOrder
+                          effectiveCategoryOrder
                             .filter(catKey => nonStarredItems.some(i => (i.category || 'other') === catKey))
                             .map(catKey => {
                               const catItems = nonStarredItems.filter(i => (i.category || 'other') === catKey);
@@ -1463,12 +1577,12 @@ function App() {
                                 <div key={catKey} className="category-group" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                                   <div className="category-sidebar" style={{
                                     width: '40px', flexShrink: 0,
-                                    backgroundColor: categoryColors[catKey] || categoryColors.other,
+                                    backgroundColor: mergedCategoryColors[catKey] || categoryColors.other,
                                     borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: '20px', padding: '12px 0px', border: '1px solid rgba(0,0,0,0.1)',
                                     boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
                                   }}>
-                                    {categoryIcons[catKey] || '🏷️'}
+                                    {mergedCategoryIcons[catKey] || '🏷️'}
                                   </div>
                                   <Reorder.Group
                                     axis="y"
