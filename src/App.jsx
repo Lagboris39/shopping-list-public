@@ -356,7 +356,7 @@ const SwipeableHistoryItem = ({ item, onReAdd, onDelete, isAdded }) => {
 
   return (
     <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden' }}>
-      <div className="swipe-bg-danger" style={{ width: '60px' }}>
+      <div className="swipe-bg-danger">
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -1189,7 +1189,7 @@ function App() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                <Share2 size={16} /> リストを共有
+                <Share2 size={16} /><span className="share-btn-label">リストを共有</span>
               </button>
             )}
             <button className="menu-toggle" onClick={() => { document.activeElement?.blur(); setIsMenuOpen(true); }}>
@@ -1420,7 +1420,7 @@ function App() {
                           }
                         }
                       }}
-                      style={{ flex: 1, minWidth: '100px' }}
+                      style={{ flex: 1, minWidth: 'min(80px, 25vw)' }}
                       autoFocus
                     />
                     <input
@@ -1430,7 +1430,7 @@ function App() {
                       value={historyInputDate}
                       max={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" })}
                       onChange={(e) => setHistoryInputDate(e.target.value)}
-                      style={{ width: '130px', fontSize: '13px', padding: '6px 8px', flexShrink: 0 }}
+                      style={{ width: 'min(100px, 28vw)', minWidth: 'min(80px, 22vw)', fontSize: '13px', padding: '6px 8px', flexShrink: 0 }}
                     />
                     <button
                       onClick={() => {

@@ -80,7 +80,11 @@ body {
 #root {
     width: 100%;
     max-width: 500px;
-    padding: 20px;
+    padding: clamp(12px, 4vw, 20px);
+    padding-top: max(clamp(12px, 4vw, 20px), env(safe-area-inset-top, 0px));
+    padding-bottom: max(clamp(12px, 4vw, 20px), env(safe-area-inset-bottom, 0px));
+    padding-left: max(clamp(12px, 4vw, 20px), env(safe-area-inset-left, 0px));
+    padding-right: max(clamp(12px, 4vw, 20px), env(safe-area-inset-right, 0px));
 }
 
 .app-container {
@@ -97,17 +101,22 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .app-icon {
-    width: 44px;
-    height: 44px;
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
@@ -168,10 +177,12 @@ body {
     display: flex;
     gap: 8px;
     background: var(--bg);
+    min-width: 0;
 }
 
 input[type="text"] {
-    flex: 1;
+    flex: 1 1 0%;
+    min-width: 0;
     padding: 14px 20px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
@@ -192,7 +203,7 @@ input[type="text"]:focus {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 0 16px;
+    padding: 0 clamp(12px, 3vw, 16px);
     border-radius: var(--radius);
     font-weight: 600;
     cursor: pointer;
@@ -202,6 +213,9 @@ input[type="text"]:focus {
     justify-content: center;
     gap: 4px;
     white-space: nowrap;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-width: fit-content;
 }
 
 .add-button-label {
@@ -273,8 +287,8 @@ input[type="text"]:focus {
 }
 
 .qty-v-btn {
-    width: 36px;
-    height: 14px;
+    width: 2rem;
+    height: 0.875rem;
     font-size: 8px;
     border: 1px solid var(--border);
     border-radius: 3px;
@@ -295,7 +309,7 @@ input[type="text"]:focus {
 .qty-v-count {
     font-size: 17px;
     font-weight: 800;
-    min-width: 36px;
+    min-width: 2rem;
     text-align: center;
     color: var(--text-main);
     padding: 0;
@@ -309,6 +323,7 @@ input[type="text"]:focus {
     gap: 8px;
     padding-left: 8px;
     flex: 1;
+    min-width: 0;
 }
 
 .empty-state {
@@ -397,7 +412,8 @@ input[type="text"]:focus {
     background-color: var(--success);
     color: white;
     border: none;
-    width: 56px;
+    min-width: clamp(2.75rem, 12vw, 3.5rem);
+    width: clamp(2.75rem, 12vw, 3.5rem);
     height: auto;
     align-self: stretch;
     display: flex;
@@ -444,7 +460,9 @@ input[type="text"]:focus {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     border: 1px solid var(--border);
+    min-width: 0;
 }
 
 .history-item-text {
@@ -459,8 +477,8 @@ input[type="text"]:focus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 1.625rem;
+    height: 1.625rem;
     border-radius: 6px;
     font-size: 14px;
     flex-shrink: 0;
@@ -469,6 +487,7 @@ input[type="text"]:focus {
 .history-actions {
     display: flex;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .history-btn {
@@ -524,7 +543,7 @@ input[type="text"]:focus {
     position: absolute;
     top: 100%;
     left: 0;
-    right: 56px;
+    right: clamp(2.75rem, 14vw, 3.5rem);
     /* leave space for add button */
     background: var(--bg);
     border: 2px solid var(--primary);
@@ -560,7 +579,8 @@ input[type="text"]:focus {
     right: 0;
     top: 0;
     bottom: 0;
-    width: 80px;
+    min-width: 3.75rem;
+    width: clamp(3.75rem, 20vw, 5rem);
     border-radius: var(--radius);
     background-color: var(--danger);
     display: flex;
@@ -662,9 +682,9 @@ input[type="text"]:focus {
     border: 1px solid var(--border);
     color: var(--text-secondary);
     padding: 0;
-    width: 120px;
-    /* Consistently fixed width */
-    height: 46px;
+    width: min(120px, 35%);
+    min-width: min(80px, 22vw);
+    height: 2.875rem;
     border-radius: var(--radius);
     display: flex;
     align-items: center;
@@ -727,6 +747,8 @@ input[type="text"]:focus {
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .date-input-group {
@@ -775,6 +797,8 @@ input[type="text"]:focus {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 0 0 auto;
+    flex-shrink: 0;
 }
 
 .menu-toggle {
@@ -782,8 +806,8 @@ input[type="text"]:focus {
     border: 1px solid var(--border);
     color: var(--text-secondary);
     cursor: pointer;
-    width: 38px;
-    height: 38px;
+    width: 2.375rem;
+    height: 2.375rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -924,8 +948,8 @@ input[type="text"]:focus {
 }
 
 .help-icon {
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     background: var(--card-bg);
     border-radius: 8px;
     display: flex;
@@ -1144,4 +1168,20 @@ input[type="text"]:focus {
 .item-emoji {
     margin-left: 4px;
     font-size: 14px;
+}
+
+/* 狭い画面（360px以下）向け: ボタンラベルを非表示にして横幅を確保 */
+@media (max-width: 360px) {
+    .add-button-label,
+    .share-btn-label {
+        display: none;
+    }
+
+    #root {
+        padding: 12px;
+        padding-top: max(12px, env(safe-area-inset-top, 0px));
+        padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+        padding-left: max(12px, env(safe-area-inset-left, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+    }
 }
