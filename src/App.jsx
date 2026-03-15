@@ -654,6 +654,8 @@ function App() {
   const reorderSaveTimeoutRef = useRef(null);
   const categoryOrderSaveTimeoutRef = useRef(null);
   const importContainerRef = useRef(null);
+  const categoryModalOpenTimeRef = useRef(0);
+  const categoryButtonPointerDownRef = useRef({});
 
   const { mergedCategoryNames, mergedCategoryColors, mergedCategoryIcons, effectiveCategoryOrder } = useMemo(() => {
     const names = { ...categoryNames };
@@ -836,7 +838,7 @@ function App() {
   const getInitialCategory = (name) => {
     const trimmedName = name.trim();
     const lowerName = trimmedName.toLowerCase();
-    const raw = categoryDict[trimmedName] || categoryDict[lowerName] || learnedCategories[trimmedName] || learnedCategories[lowerName] || "other";
+    const raw = learnedCategories[trimmedName] || learnedCategories[lowerName] || categoryDict[trimmedName] || categoryDict[lowerName] || "other";
     return deletedCategoryIds.includes(raw) ? "other" : raw;
   };
 
@@ -1491,7 +1493,10 @@ function App() {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="drawer-overlay" onClick={() => setSelectedItemForCategory(null)}
+              className="drawer-overlay" onClick={() => {
+              if (Date.now() - categoryModalOpenTimeRef.current < 300) return;
+              setSelectedItemForCategory(null);
+            }}
             />
             <motion.div
               key="category-modal"
@@ -1505,13 +1510,27 @@ function App() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0 }}>{selectedItemForCategory.name} の分類</h3>
-                <button onClick={() => setSelectedItemForCategory(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={24} /></button>
+                <button onClick={() => {
+                if (Date.now() - categoryModalOpenTimeRef.current < 300) return;
+                setSelectedItemForCategory(null);
+              }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-color)' }}><X size={24} /></button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {effectiveCategoryOrder.filter(k => k !== 'other').concat(['other']).map(key => (
                   <button
                     key={key}
-                    onClick={() => confirmCategoryChange(selectedItemForCategory, key)}
+                    onPointerDown={(e) => {
+                      categoryButtonPointerDownRef.current[e.pointerId] = key;
+                    }}
+                    onPointerUp={(e) => {
+                      if (categoryButtonPointerDownRef.current[e.pointerId] === key) {
+                        confirmCategoryChange(selectedItemForCategory, key);
+                      }
+                      delete categoryButtonPointerDownRef.current[e.pointerId];
+                    }}
+                    onPointerCancel={(e) => {
+                      delete categoryButtonPointerDownRef.current[e.pointerId];
+                    }}
                     style={{
                       padding: '12px', borderRadius: '8px', cursor: 'pointer',
                       backgroundColor: mergedCategoryColors[key] || categoryColors.other,
@@ -1780,11 +1799,22 @@ function App() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
-                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                zIndex: 111, width: 'min(90vw, 320px)', backgroundColor: 'var(--card-bg)',
-                borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-lg)'
+                position: 'fixed', inset: 0, zIndex: 111,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '20px', paddingLeft: 'max(20px, env(safe-area-inset-left, 0px))',
+                paddingRight: 'max(20px, env(safe-area-inset-right, 0px))',
+                paddingTop: 'max(20px, env(safe-area-inset-top, 0px))',
+                paddingBottom: 'max(20px, env(safe-area-inset-bottom, 0px))',
+                boxSizing: 'border-box', pointerEvents: 'none'
               }}
             >
+              <div
+                style={{
+                  width: '100%', maxWidth: '320px', maxHeight: '100%', overflowY: 'auto',
+                  backgroundColor: 'var(--card-bg)', borderRadius: '16px', padding: '24px',
+                  boxShadow: 'var(--shadow-lg)', boxSizing: 'border-box', pointerEvents: 'auto'
+                }}
+              >
               <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem' }}>このカテゴリを削除しますか？</h4>
               <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 含まれる品目は「その他」に振り替えられます。
@@ -1801,6 +1831,7 @@ function App() {
                     removeBuiltinCategory(catKey);
                   }
                 }} style={{ padding: '10px 16px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>削除</button>
+              </div>
               </div>
             </motion.div>
           </>
@@ -1880,7 +1911,10 @@ function App() {
                         item={item}
                         onPurchase={purchaseItem}
                         onDelete={deleteItem}
-                        onChangeCategory={(i) => setSelectedItemForCategory(i)}
+                        onChangeCategory={(i) => {
+                          categoryModalOpenTimeRef.current = Date.now();
+                          setSelectedItemForCategory(i);
+                        }}
                         onUpdateQuantity={updateQuantity}
                         onToggleStar={toggleStar}
                         showStarFeature={showStarFeature}
